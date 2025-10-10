@@ -9,7 +9,7 @@ $videoFiles = [
 ];
 
 $roomId = $_GET['room'] ?? 'demo_video_stream';
-$isWebRTC = isset($_GET['webrtc']) && $_GET['webrtc'] === 'true';
+$isWebRTC = false; // Movie-Seite: immer Video-Datei
 $videoFile = $videoFiles[$roomId] ?? 'ttr.m4v';
 
 // Location-Daten aus URL-Parametern
@@ -35,6 +35,7 @@ $gpsLon = $_GET['lon'] ?? '';
     <?php include 'components/head-meta.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Cache-Buster: v2.0 -->
     <style>
         * {
             margin: 0;
@@ -111,8 +112,8 @@ $gpsLon = $_GET['lon'] ?? '';
         .container {
             display: flex;
             gap: 40px;
-            padding: 120px 40px 40px;
-            max-width: 1800px;
+            padding: 20px 40px 40px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
@@ -435,11 +436,39 @@ $gpsLon = $_GET['lon'] ?? '';
 </head>
 <body>
     <?php include 'components/header.php'; ?>
+    
     <div class="container">
         <!-- Video Section -->
         <div class="video-section">
             <div class="video-wrapper">
                 <div class="video-container">
+                    <!-- Zurück-Button Overlay -->
+                    <a href="viewer.php" style="
+                        position: absolute;
+                        top: 20px;
+                        left: 20px;
+                        z-index: 10;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 18px;
+                        background: rgba(26, 26, 36, 0.9);
+                        backdrop-filter: blur(10px);
+                        border: 1px solid rgba(212, 175, 55, 0.3);
+                        border-radius: 10px;
+                        color: #ffffff;
+                        text-decoration: none;
+                        font-size: 14px;
+                        font-weight: 500;
+                        transition: all 0.3s;
+                        
+                    " onmouseover="this.style.borderColor='rgba(212, 175, 55, 0.8)'; this.style.background='rgba(26, 26, 36, 1)'" onmouseout="this.style.borderColor='rgba(212, 175, 55, 0.3)'; this.style.background='rgba(26, 26, 36, 0.9)'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Zurück
+                    </a>
+                    
                     <!-- Buchungsbestätigung Overlay -->
                     <div id="bookingConfirmation" style="
                         display: none;
@@ -490,10 +519,9 @@ $gpsLon = $_GET['lon'] ?? '';
                         <?php if ($isWebRTC): ?>
                         <div class="status-badge"><div class="status-dot"></div><span>LIVE STREAM</span></div>
                         <?php endif; ?>
-                        <!-- rechts bleibt frei, Titel/Location-Overlay bleibt separat -->
                     </div>
                     
-                    <!-- Video Title / Location Overlay -->
+                    <!-- Video Title Overlay (nur Titel, kein Ort) -->
                     <div style="
                         position: absolute;
                         top: 20px;
@@ -504,9 +532,6 @@ $gpsLon = $_GET['lon'] ?? '';
                         border-radius: 100px;
                         border: 1px solid rgba(212, 175, 55, 0.3);
                         z-index: 2;
-                        display: flex;
-                        align-items: center;
-                        gap: 12px;
                     ">
                         <div id="videoTitleOverlay" style="
                             color: #d4af37;
@@ -514,18 +539,6 @@ $gpsLon = $_GET['lon'] ?? '';
                             font-weight: 600;
                             letter-spacing: 0.5px;
                         ">Loading...</div>
-                        <a id="locationOverlay" href="#" target="_blank" style="
-                            color: rgba(255, 255, 255, 0.7);
-                            font-size: 12px;
-                            font-weight: 500;
-                            display: none;
-                            border-left: 1px solid rgba(212, 175, 55, 0.3);
-                            padding-left: 12px;
-                            text-decoration: none;
-                            transition: all 0.3s;
-                        " onmouseover="this.style.color='#d4af37'" onmouseout="this.style.color='rgba(255, 255, 255, 0.7)'">
-                            📍 <span id="locationText"></span>
-                        </a>
                     </div>
                     <div id="customControls" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%); padding: 15px 30px 20px 30px; z-index: 5; opacity: 1; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); backdrop-filter: blur(10px);">
                         <!-- Progress Bar Container -->
@@ -728,8 +741,6 @@ $gpsLon = $_GET['lon'] ?? '';
         
         // Setze Video-Titel im Overlay
         const videoTitleOverlay = document.getElementById('videoTitleOverlay');
-        const locationOverlay = document.getElementById('locationOverlay');
-        const locationText = document.getElementById('locationText');
         
         if (videoTitleOverlay) {
             const videoTitleBelowEl = document.getElementById('videoTitleBelow');
@@ -769,58 +780,8 @@ $gpsLon = $_GET['lon'] ?? '';
                 videoTitleOverlay.innerHTML = `${roomId} <span id="titleVideoSize" style="font-size: 11px; opacity: 0.7; font-weight: 400;"></span>`;
                 if (videoTitleBelowEl) videoTitleBelowEl.textContent = roomId;
             }
-
-            // Location immer versuchen anzuzeigen (auch bei Demo-Filmen)
-            if (locationOverlay && locationText) {
-                let locationData = null;
-                let isRealLocation = false;
-
-                // 1) Echte URL-Parameter priorisieren
-                if (streamLocation && streamGpsLat && streamGpsLon) {
-                    locationData = { address: streamLocation, lat: streamGpsLat, lon: streamGpsLon };
-                    isRealLocation = true;
-                } else {
-                    // 2) Bekannte Demo-Locations
-                    const demoLocations = {
-                        'demo_video_stream': { address: 'Mitte, Friedrichstraße 123', gps: '52.5200° N, 13.3889° E' },
-                        'demo_stingray_stream': { address: 'HafenCity, Überseeboulevard 5', gps: '53.5413° N, 9.9989° E' },
-                        'demo_subway_stream': { address: 'Kreuzberg, Oranienstraße 45', gps: '52.4995° N, 13.4197° E' },
-                        'demo_chuck_stream': { address: 'Schwabing, Leopoldstraße 89', gps: '48.1590° N, 11.5865° E' },
-                        'demo_horrible_boss_stream': { address: 'Neukölln, Karl-Marx-Straße 66', gps: '52.4800° N, 13.4350° E' }
-                    };
-
-                    const driverLocations = {
-                        'Driver-Berlin-001': { address: 'Mitte, Friedrichstraße 123', gps: '52.5200° N, 13.3889° E' },
-                        'Driver-Berlin-002': { address: 'Kreuzberg, Oranienstraße 45', gps: '52.4995° N, 13.4197° E' },
-                        'Driver-Hamburg-001': { address: 'Altona, Reeperbahn 67', gps: '53.5511° N, 9.9937° E' },
-                        'Driver-München-001': { address: 'Schwabing, Leopoldstraße 89', gps: '48.1351° N, 11.5820° E' }
-                    };
-
-                    const loc = demoLocations[roomId] || driverLocations[roomId];
-                    if (loc) {
-                        const lat = loc.gps.split(',')[0].replace('°', '').trim().split(' ')[0];
-                        const lon = loc.gps.split(',')[1].replace('°', '').trim().split(' ')[0];
-                        locationData = { address: loc.address, lat, lon };
-                    }
-                }
-
-                if (locationData) {
-                    const gpsText = `${locationData.lat}° N, ${locationData.lon}° E`;
-                    locationText.innerHTML = `${locationData.address}<br><span style="font-size: 10px; opacity: 0.7;">${gpsText}</span>`;
-                    const mapsUrl = `https://www.google.com/maps?q=${locationData.lat},${locationData.lon}`;
-                    locationOverlay.href = mapsUrl;
-                    locationOverlay.style.display = 'flex';
-                    locationOverlay.title = isRealLocation ? 'In Google Maps öffnen' : 'Demo-Standort (In Google Maps öffnen)';
-
-                    // Adresse unter dem Video anzeigen
-                    const addressLine = document.getElementById('addressLine');
-                    const addressText = document.getElementById('addressText');
-                    if (addressLine && addressText) {
-                        addressText.textContent = locationData.address;
-                        addressLine.style.display = 'block';
-                    }
-                }
-            }
+            
+            // Kein Location-Overlay bei Video-Dateien
         }
         
         // Funktion um Video-Größe zu aktualisieren
@@ -904,18 +865,57 @@ $gpsLon = $_GET['lon'] ?? '';
         }
 
         function initVideoFileStream() {
-            // Prüfe ob HLS-Stream verfügbar ist (SRS läuft auf Port 8081)
+            // Streaming-Server URLs (SRS läuft auf Port 8081 via Docker)
+            // Verwende roomId statt videoFile, da FFmpeg mit roomId streamt
             const hlsStreamUrl = `http://${HOSTNAME}:8081/live/${roomId}.m3u8`;
             const mp4FallbackUrl = '/videos/' + videoFile;
             
             console.log('Versuche HLS-Stream:', hlsStreamUrl);
+            console.log('MP4-Fallback:', mp4FallbackUrl);
             
             // Optimierungen für niedrige Latenz
             video.preload = 'auto';
             video.playsInline = true;
             
-            // Prüfe ob HLS.js benötigt wird (Safari hat natives HLS)
-            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Prüfe ob HLS.js verfügbar und unterstützt ist
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                console.log('Verwende HLS.js für Streaming');
+                const hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60
+                });
+                
+                hls.loadSource(hlsStreamUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    console.log('HLS-Manifest geladen, Stream bereit');
+                });
+                
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.warn('HLS-Fehler:', data.type, data.details);
+                    if (data.fatal) {
+                        console.error('Fataler HLS-Fehler, verwende MP4-Fallback');
+                        hls.destroy();
+                        video.src = mp4FallbackUrl;
+                        video.load();
+                    }
+                });
+                
+                // Timeout: Falls HLS nach 5 Sekunden nicht lädt, Fallback
+                setTimeout(() => {
+                    if (video.readyState === 0) {
+                        console.warn('HLS-Stream lädt nicht, verwende MP4-Fallback');
+                        hls.destroy();
+                        video.src = mp4FallbackUrl;
+                        video.load();
+                    }
+                }, 5000);
+                
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 // Native HLS-Unterstützung (Safari)
                 console.log('Native HLS-Unterstützung erkannt');
                 video.src = hlsStreamUrl;
@@ -927,26 +927,6 @@ $gpsLon = $_GET['lon'] ?? '';
                     video.src = mp4FallbackUrl;
                     video.load();
                 };
-            } else if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-                // HLS.js für andere Browser
-                console.log('Verwende HLS.js für Streaming');
-                const hls = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: true,
-                    backBufferLength: 90
-                });
-                
-                hls.loadSource(hlsStreamUrl);
-                hls.attachMedia(video);
-                
-                hls.on(Hls.Events.ERROR, (event, data) => {
-                    if (data.fatal) {
-                        console.warn('HLS-Fehler, verwende MP4-Fallback:', data);
-                        hls.destroy();
-                        video.src = mp4FallbackUrl;
-                        video.load();
-                    }
-                });
             } else {
                 // Kein HLS-Support, verwende direkte MP4
                 console.log('Kein HLS-Support, verwende direkte MP4');
@@ -961,19 +941,6 @@ $gpsLon = $_GET['lon'] ?? '';
             
             video.onloadstart = () => {
                 console.log('Video lädt...');
-                
-                // Timeout: Falls nach 10 Sekunden nichts passiert
-                setTimeout(() => {
-                    if (loadingIndicator && loadingIndicator.style.display !== 'none') {
-                        console.warn('Loading-Timeout - versuche Fallback');
-                        // Versuche MP4-Fallback
-                        if (video.src.includes('.m3u8')) {
-                            console.log('Wechsle zu MP4-Fallback');
-                            video.src = mp4FallbackUrl;
-                            video.load();
-                        }
-                    }
-                }, 10000);
             };
 
             video.onloadedmetadata = () => {
@@ -1221,23 +1188,7 @@ $gpsLon = $_GET['lon'] ?? '';
             loadingIndicator.style.display = 'block';
         }
         
-        // Funktion um Location-Anzeige zu aktualisieren
-        function updateLocationDisplay(location, lat, lon) {
-            const locationOverlay = document.getElementById('locationOverlay');
-            const locationText = document.getElementById('locationText');
-            
-            if (locationOverlay && locationText && location && lat && lon) {
-                const gpsText = `${lat}° N, ${lon}° E`;
-                locationText.innerHTML = `${location}<br><span style="font-size: 10px; opacity: 0.7;">${gpsText}</span>`;
-                
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-                locationOverlay.href = mapsUrl;
-                locationOverlay.style.display = 'flex';
-                locationOverlay.title = 'In Google Maps öffnen';
-                
-                console.log('Location aktualisiert:', location, lat, lon);
-            }
-        }
+        // Location-Anzeige nicht benötigt bei Video-Dateien
 
         // Zeit-Updates
         function updateTime() {
@@ -1406,11 +1357,10 @@ $gpsLon = $_GET['lon'] ?? '';
                 volumeBar.value = video.volume * 100;
                 localStorage.setItem('plnx_volume', video.volume);
             } else {
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                    </svg>
-                `;
+                // Mute: Speichere aktuelle Lautstärke und mute
+                volumeBeforeMute = video.volume;
+                video.muted = true;
+                localStorage.setItem('plnx_volume_before_mute', volumeBeforeMute);
             }
         }
 
@@ -1496,22 +1446,25 @@ $gpsLon = $_GET['lon'] ?? '';
 
 // Keyboard Shortcuts
 document.addEventListener('keydown', (e) => {
+    // Ignoriere Shortcuts wenn Input/Textarea fokussiert ist
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return; // Lasse normale Tastatureingabe zu
+    }
+    
     if (e.code === 'Space') {
         e.preventDefault();
         togglePlayPause();
-    } else if (e.code === 'KeyF') {
-        toggleFullscreen();
     } else if (e.code === 'KeyM') {
         toggleMute();
     }
+    // KeyF für Fullscreen deaktiviert
 });
 
         // Debug: Zeige Video-Quelle
         console.log('Video-Quelle:', video.currentSrc || video.src);
         console.log('Video bereit:', video.readyState);
     </script>
-
-    <?php include 'components/footer.php'; ?>
     
     <!-- Chat-Fenster (in Sidebar) -->
     <div id="chatWindow" style="display: none; width: 100%; background: linear-gradient(135deg, rgba(26, 26, 36, 0.98), rgba(20, 20, 28, 0.98)); border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(212, 175, 55, 0.2); backdrop-filter: blur(20px); flex-direction: column; animation: slideInUp 0.3s ease-out; margin-top: 20px;">
@@ -1748,5 +1701,7 @@ document.addEventListener('keydown', (e) => {
             openChatWindow();
         };
     </script>
+    
+    <?php include 'components/footer.php'; ?>
 </body>
 </html>

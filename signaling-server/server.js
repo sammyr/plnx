@@ -35,6 +35,7 @@ const wss = new WebSocket.Server({ server });
 const broadcasters = new Map();
 const viewers = new Map();
 const rooms = new Map();
+const reservedRooms = new Set(); // Reservierte Streams
 
 console.log('🚀 WebRTC Signaling Server gestartet');
 
@@ -256,7 +257,8 @@ function handleGetRooms(ws) {
         roomId: roomId,
         viewerCount: room.viewers.size,
         created: room.created,
-        location: room.location || null
+        location: room.location || null,
+        reserved: reservedRooms.has(roomId) // Reservierungs-Status
     }));
 
     ws.send(JSON.stringify({
@@ -288,6 +290,12 @@ function handleDisconnect(ws) {
 
         broadcasters.delete(roomId);
         rooms.delete(roomId);
+        
+        // Reservierung automatisch aufheben wenn Stream offline geht
+        if (reservedRooms.has(roomId)) {
+            reservedRooms.delete(roomId);
+            console.log(`🔓 Reservierung automatisch aufgehoben (Stream offline): ${roomId}`);
+        }
 
         // Benachrichtige alle über beendeten Stream
         broadcastToAll({
@@ -336,13 +344,57 @@ app.get('/rooms', (req, res) => {
         roomId: roomId,
         viewerCount: room.viewers.size,
         created: new Date(room.created).toISOString(),
-        location: room.location || null // GPS-Koordinaten mit ausgeben
+        location: room.location || null, // GPS-Koordinaten mit ausgeben
+        reserved: reservedRooms.has(roomId) // Reservierungs-Status
     }));
 
     res.json({
         rooms: activeRooms,
         total: activeRooms.length
     });
+});
+
+// Reservierungs-Endpunkte
+app.post('/api/reserve/:roomId', (req, res) => {
+    const { roomId } = req.params;
+    
+    // Wenn _method=DELETE (von sendBeacon), behandle als DELETE
+    if (req.body && req.body._method === 'DELETE') {
+        reservedRooms.delete(roomId);
+        console.log(`🔓 Reservierung aufgehoben (Beacon): ${roomId}`);
+        
+        broadcastToAll({
+            type: 'room-unreserved',
+            roomId: roomId
+        });
+        
+        res.json({ success: true, roomId, reserved: false });
+    } else {
+        // Normale Reservierung
+        reservedRooms.add(roomId);
+        console.log(`🔒 Stream reserviert: ${roomId}`);
+        
+        broadcastToAll({
+            type: 'room-reserved',
+            roomId: roomId
+        });
+        
+        res.json({ success: true, roomId, reserved: true });
+    }
+});
+
+app.delete('/api/reserve/:roomId', (req, res) => {
+    const { roomId } = req.params;
+    reservedRooms.delete(roomId);
+    console.log(`🔓 Reservierung aufgehoben: ${roomId}`);
+    
+    // Benachrichtige alle Clients über Änderung
+    broadcastToAll({
+        type: 'room-unreserved',
+        roomId: roomId
+    });
+    
+    res.json({ success: true, roomId, reserved: false });
 });
 
 // Thumbnail-Upload-Endpunkt (speichert mehrere Versionen für Slideshow)

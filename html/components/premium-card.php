@@ -659,9 +659,40 @@
             submitBtn.textContent = 'Zahlung abschließen';
             submitBtn.disabled = false;
             
-            // Zeige Buchungsbestätigung und öffne Chat
+            // Hole roomId aus URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            
+            // Zeige Buchungsbestätigung und öffne Chat ZUERST
+            console.log('[Payment] Prüfe window.openDriverChat:', typeof window.openDriverChat);
             if (typeof window.openDriverChat === 'function') {
+                console.log('[Payment] Rufe window.openDriverChat() auf...');
                 window.openDriverChat();
+                console.log('[Payment] window.openDriverChat() aufgerufen');
+            } else {
+                console.error('[Payment] window.openDriverChat ist KEINE Funktion!', window.openDriverChat);
+            }
+            
+            // Dann sende Reservierung an Server (für alle Besucher sichtbar)
+            if (roomId) {
+                fetch(`http://localhost:3000/api/reserve/${encodeURIComponent(roomId)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => {
+                    console.log('[Payment] Server Response Status:', res.status);
+                    if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    console.log(`[Payment] Stream ${roomId} auf Server reserviert:`, data);
+                })
+                .catch(err => {
+                    console.error('[Payment] Reservierung fehlgeschlagen:', err);
+                    console.error('[Payment] Fehler-Details:', err.message);
+                });
             }
         }, 2000);
     }

@@ -44,6 +44,21 @@ services:
     networks:
       - srs-network
 
+  demo-streams:
+    image: ubuntu:22.04
+    container_name: demo-video-streams
+    volumes:
+      - ./html/videos:/videos:ro
+      - ./start-demo-streams.sh:/start-streams.sh
+      - ./logs:/logs
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["apt-get update && apt-get install -y ffmpeg && bash /start-streams.sh"]
+    restart: unless-stopped
+    depends_on:
+      - srs
+    networks:
+      - srs-network
+
 networks:
   srs-network:
     driver: bridge

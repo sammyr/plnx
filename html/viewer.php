@@ -21,606 +21,27 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streams</title>
+    <?php include 'components/head-meta.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #13131a;
-            --bg-card: #1a1a24;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a1aa;
-            --border: rgba(255, 255, 255, 0.1);
-            --shadow: rgba(0, 0, 0, 0.5);
-        }
-
-        .stream-card .location-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(10, 10, 15, 0.75);
-            border: 1px solid rgba(212, 175, 55, 0.35);
-            border-radius: 14px;
-            padding: 10px 14px;
-            backdrop-filter: blur(12px);
-            display: none; /* ausgeblendet auf Wunsch */
-            flex-direction: column;
-            gap: 4px;
-            min-width: 180px;
-            color: rgba(255, 255, 255, 0.85);
-            transition: all 0.3s;
-            z-index: 3;
-        }
-
-        .stream-card .location-badge svg {
-            color: #d4af37;
-        }
-
-        .stream-card .location-badge .badge-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.55);
-        }
-
-        .stream-card .location-badge .badge-location {
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .stream-card .location-badge .badge-coords {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            font-weight: 300;
-            letter-spacing: 0.01em;
-        }
-
-        /* Header */
-        .header {
-            padding: 0px;
-            text-align: center;
-            background: linear-gradient(180deg, var(--bg-primary) 0%, transparent 100%);
-        }
-
-
-        .header p {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 300;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-        }
-
-        /* Container */
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 0 40px 80px;
-        }
-
-        /* Streams Grid */
-        .streams-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-            gap: 32px;
-            margin-top: 40px;
-        }
-
-        /* Stream Card */
-        .stream-card {
-            position: relative;
-            background: var(--bg-card);
-            border-radius: 16px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid var(--border);
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15),
-                        0 0 40px rgba(212, 175, 55, 0.08);
-            isolation: isolate;
-        }
-
-        .stream-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 16px;
-            padding: 1px;
-            background: linear-gradient(135deg, var(--accent), transparent);
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask-composite: exclude;
-            opacity: 0;
-            transition: opacity 0.4s;
-            pointer-events: none;
-        }
-
-        .stream-card:hover::before {
-            opacity: 1;
-        }
-
-        .stream-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3),
-                        0 0 60px rgba(212, 175, 55, 0.15),
-                        0 12px 32px rgba(0, 0, 0, 0.3);
-            border-color: rgba(212, 175, 55, 0.4);
-        }
-
-        /* Thumbnail */
-        .stream-thumbnail {
-            position: relative;
-            aspect-ratio: 16/9;
-            background: #000;
-            overflow: hidden;
-        }
-
-        .stream-thumbnail .placeholder {
-            font-size: 64px;
-            opacity: 0.4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-        }
-
-        .stream-thumbnail video,
-        .stream-thumbnail .thumbnail-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .stream-card:hover .stream-thumbnail video,
-        .stream-card:hover .stream-thumbnail .thumbnail-video {
-            transform: scale(1.02);
-        }
-
-        /* Thumbnail-Video spezifisch */
-        .thumbnail-video {
-            pointer-events: none;
-            display: block;
-            position: relative;
-        }
-        
-        .thumbnail-video img {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Stream-Vorschau Video */
-        .stream-preview-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none;
-            pointer-events: none;
-        }
-
-        .stream-preview-video.active {
-            display: block;
-        }
-
-        .stream-preview-video.active + .placeholder {
-            display: none;
-        }
-
-        /* Live Badge */
-        .live-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(220, 38, 38, 0.4);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 100px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            z-index: 10;
-            pointer-events: none; /* wie bei Videostream-Karten, Klicks gehen durch */
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .live-dot {
-            width: 10px;
-            height: 10px;
-            background: #ef4444;
-            border-radius: 50%;
-            box-shadow: 0 0 6px rgba(239, 68, 68, 0.6), 0 0 12px rgba(239, 68, 68, 0.35);
-            animation: livePulse 5.2s linear infinite;
-
-        }
-
-        @keyframes livePulse {
-            0% {
-                transform: scale(1);
-                opacity: 0.85;
-                box-shadow: 0 0 4px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.25);
-            }
-            50% {
-                transform: scale(1.2);
-                opacity: 1;
-                box-shadow: 0 0 8px rgba(239, 68, 68, 0.7), 0 0 14px rgba(239, 68, 68, 0.4);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 0.85;
-                box-shadow: 0 0 4px rgba(239, 68, 68, 0.5), 0 0 8px rgba(239, 68, 68, 0.25);
-            }
-        }
-
-        /* Card Info */
-        .stream-info {
-            padding: 24px;
-        }
-
-        .stream-title {
-            font-family: 'IBM Plex Sans', sans-serif;
-            font-size: 1rem;
-            font-weight: 400;
-            margin-bottom: 8px;
-            letter-spacing: 0.01em;
-            color: var(--text-primary);
-        }
-
-        .stream-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            font-weight: 300;
-            letter-spacing: 0.02em;
-        }
-        
-        .stream-location,
-        .stream-duration,
-        .stream-viewers {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .reserved-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-        
-        .reserved-overlay span {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #fff;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-
-        .stream-viewers {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .viewer-icon {
-            width: 16px;
-            height: 16px;
-            opacity: 0.7;
-        }
-
-        /* Popover */
-        .popover-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .popover-overlay.active {
-            display: flex;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        .popover {
-            background: var(--bg-card);
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            border: 1px solid var(--border);
-            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8);
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .popover h2 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .popover-subtitle {
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            font-size: 15px;
-        }
-
-        .popover-room {
-            background: var(--bg-secondary);
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            margin-bottom: 32px;
-            border: 1px solid var(--border);
-        }
-
-        .popover-room-id {
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .popover-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 16px 28px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px -8px rgba(99, 102, 241, 0.6);
-        }
-
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-primary);
-            border-color: var(--accent);
-        }
-
-        /* Stream View */
-        .stream-view {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: var(--bg-primary);
-            z-index: 999;
-            animation: fadeIn 0.3s;
-        }
-
-        .stream-view.active {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stream-header {
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-secondary);
-        }
-
-        .stream-room-id {
-            font-family: 'Courier New', monospace;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .btn-back {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-back:hover {
-            background: var(--bg-primary);
-            border-color: var(--accent);
-        }
-
-        .stream-player {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-            position: relative;
-        }
-
-        .stream-player video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .player-overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-        }
-
-        .player-badge {
-            background: rgba(26, 26, 36, 0.9);
-            backdrop-filter: blur(10px);
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            border: 1px solid var(--border);
-        }
-
-        .player-badge.live {
-            background: rgba(16, 185, 129, 0.9);
-            border-color: #10b981;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 120px 20px;
-            color: var(--text-secondary);
-        }
-
-        .empty-icon {
-            font-size: 80px;
-            margin-bottom: 24px;
-            opacity: 0.3;
-        }
-
-        .empty-state h3 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-        }
-
-        .empty-state p {
-            font-size: 16px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-   
-
-            .container {
-                padding: 0 20px 60px;
-            }
-
-            .streams-grid {
-                grid-template-columns: 1fr;
-                gap: 24px;
-            }
-
-            .popover {
-                padding: 32px 24px;
-            }
-
-            .popover-buttons {
-                flex-direction: column;
-            }
-
-            .stream-header {
-                padding: 16px 20px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="components/global.css">
 </head>
 <body>
+    <?php include 'components/header.php'; ?>
     <!-- Streams Overview -->
     <div id="streamsOverview">
-        <div class="header">
-            <?php include 'components/logo.php'; ?>
-            <p>Verfügbare Broadcasts</p>
-        </div>
+
 
         <div class="container">
             <div id="streamsGrid" class="streams-grid">
                 <?php foreach ($demoVideos as $index => $video): ?>
                 <div class="stream-card">
-                    <a href="watch.php?room=<?php echo urlencode($video['id']); ?>" style="text-decoration: none; color: inherit; display: block; width: 100%; height: 100%;">
+                    <a href="watch-movie.php?room=<?php echo urlencode($video['id']); ?>" style="text-decoration: none; color: inherit; display: block; width: 100%; height: 100%;">
                         <div class="stream-thumbnail" style="position: relative; overflow: hidden;">
                             <video class="thumbnail-video" autoplay muted loop playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; pointer-events: none;">
                                 <source src="videos/<?php echo htmlspecialchars($video['thumbnail']); ?>" type="video/mp4">
                             </video>
-                            <div class="live-badge" style="position: relative; z-index: 1; pointer-events: none;">
-                                <div class="live-dot"></div>
-                                <span>LIVE</span>
-                            </div>
+                            <!-- Kein LIVE-Badge für Demo-Videos -->
                         </div>
                         <div class="stream-info">
                             <h3 class="stream-title"><?php echo htmlspecialchars($video['title']); ?></h3>
@@ -798,14 +219,15 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             const source = getThumbnailSource(roomId);
             
             if (source.isVideo) {
-                // Video-Thumbnail (Demo)
+                // Video-Thumbnail (Demo) - Optimiert für Performance
                 const videoEl = document.createElement('video');
                 videoEl.className = 'thumbnail-video';
-                videoEl.autoplay = true;
+                videoEl.autoplay = false; // Erst bei Sichtbarkeit
                 videoEl.loop = true;
                 videoEl.muted = true;
                 videoEl.playsInline = true;
-                videoEl.preload = 'metadata';
+                videoEl.preload = 'none'; // Lade nichts bis nötig
+                videoEl.loading = 'lazy'; // Lazy Loading
 
                 const sourceEl = document.createElement('source');
                 sourceEl.src = source.src;
@@ -816,8 +238,28 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                     if (videoEl.parentElement) videoEl.parentElement.removeChild(videoEl);
                 }, { once: true });
 
+                // Lazy Loading: Lade Video nur wenn sichtbar
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            videoEl.preload = 'metadata';
+                            videoEl.load();
+                            // Spiele ab wenn im Viewport
+                            setTimeout(() => {
+                                videoEl.play().catch(() => {});
+                            }, 100);
+                            observer.disconnect();
+                        }
+                    });
+                }, { rootMargin: '50px' }); // Lade 50px bevor sichtbar
+                
+                observer.observe(videoEl);
+                
+                // Hover-Effekt: Stelle sicher dass Video spielt
                 videoEl.addEventListener('mouseenter', () => {
-                    requestAnimationFrame(() => videoEl.play().catch(() => {}));
+                    if (videoEl.paused) {
+                        requestAnimationFrame(() => videoEl.play().catch(() => {}));
+                    }
                 });
 
                 return videoEl;
@@ -946,18 +388,87 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             }
         };
 
-        const demoLocations = {
-            'Driver-Berlin-001': { address: 'Mitte, Friedrichstraße 123', lat: 52.5200, lon: 13.3889 },
-            'Driver-Berlin-002': { address: 'Kreuzberg, Oranienstraße 45', lat: 52.4995, lon: 13.4197 },
-            'Driver-Hamburg-001': { address: 'Altona, Reeperbahn 67', lat: 53.5511, lon: 9.9937 },
-            'Driver-München-001': { address: 'Schwabing, Leopoldstraße 89', lat: 48.1351, lon: 11.5820 }
-        };
+        // Lade Locations aus JSON-Datei (synchron beim Start)
+        let demoLocations = {};
+        let locationsLoaded = false;
+        
+        // Lade Locations sofort (mit Cache-Busting)
+        (async function loadLocations() {
+            try {
+                const ts = Date.now();
+                const response = await fetch(`data/locations.json?t=${ts}`, { cache: 'no-store' });
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                demoLocations = await response.json();
+                locationsLoaded = true;
+                console.log('[Locations] Geladen aus locations.json:', Object.keys(demoLocations).length, 'Einträge');
+                // Force re-render mit neuen Locations
+                lastRoomsJson = '';
+                if (cachedRooms && cachedRooms.length) {
+                    console.log('[Locations] Re-render rooms mit frischen Locations');
+                    await displayRooms(cachedRooms);
+                }
+            } catch (error) {
+                console.error('[Locations] Fehler beim Laden:', error);
+                // Fallback zu hardcoded Locations (mit Berlin/Mitte für 001)
+                demoLocations = {
+                    'Driver-Berlin-001': { 
+                        city: 'Berlin', 
+                        district: 'Mitte',
+                        address: 'Mitte, Friedrichstraße 123', 
+                        lat: 52.5200, 
+                        lon: 13.3889 
+                    },
+                    'Driver-Berlin-002': { 
+                        city: 'Berlin',
+                        district: 'Kreuzberg',
+                        address: 'Kreuzberg, Oranienstraße 45', 
+                        lat: 52.4995, 
+                        lon: 13.4197 
+                    },
+                    'Driver-Hamburg-001': { 
+                        city: 'Hamburg',
+                        district: 'St. Pauli',
+                        address: 'St. Pauli, Reeperbahn 154', 
+                        lat: 53.5511, 
+                        lon: 9.9937 
+                    },
+                    'Driver-Munich-001': { 
+                        city: 'München',
+                        district: 'Schwabing',
+                        address: 'Schwabing, Leopoldstraße 89', 
+                        lat: 48.1351, 
+                        lon: 11.5820 
+                    }
+                };
+                locationsLoaded = true;
+                lastRoomsJson = '';
+                if (cachedRooms && cachedRooms.length) {
+                    console.log('[Locations] Re-render rooms (Fallback)');
+                    await displayRooms(cachedRooms);
+                }
+            }
+        })();
         
         // Hilfsfunktionen
         async function parseLocation(roomId, locationData = null) {
             let coords = null;
             let isReal = false;
             let label = null;
+
+            // Vorrang: Daten aus locations.json überschreiben immer eingehende Room-Daten
+            const key = (roomId || '').trim();
+            if (demoLocations[key]) {
+                const demo = demoLocations[key];
+                const locationLabel = demo.city && demo.district
+                    ? `${demo.city} / ${demo.district}`
+                    : (demo.city || 'Unbekannt');
+                return {
+                    label: locationLabel,
+                    lat: demo.lat ?? null,
+                    lon: demo.lon ?? null,
+                    isReal: false
+                };
+            }
 
             if (locationData) {
                 let normalized = locationData;
@@ -1016,8 +527,12 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
 
             if (demoLocations[roomId]) {
                 const demo = demoLocations[roomId];
+                // Format: Stadt / Bezirk (NUR für viewer.php)
+                const locationLabel = demo.city && demo.district 
+                    ? `${demo.city} / ${demo.district}` 
+                    : (demo.city || 'Unbekannt');
                 return {
-                    label: demo.address,
+                    label: locationLabel,
                     lat: demo.lat,
                     lon: demo.lon,
                     isReal: false
@@ -1061,8 +576,15 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
         
         let lastRoomsJson = '';
         let durationIntervals = [];
+        let cachedRooms = [];
         
         async function displayRooms(rooms) {
+            cachedRooms = rooms;
+            // Warte bis Locations geladen sind
+            while (!locationsLoaded) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
             // Verhindere unnötige Neuinitialisierung wenn sich nichts geändert hat
             const currentRoomsJson = JSON.stringify(rooms.map(r => r.roomId).sort());
             if (currentRoomsJson === lastRoomsJson) {
@@ -1096,13 +618,15 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                         // Daten vorbereiten
                         const currentRoomId = room.roomId;
                         const currentLocation = room.location;
-                        const isReserved = room.viewerCount > 0;
+                        // "RESERVIERT" wird vom Server geliefert (für alle Besucher sichtbar)
+                        const isReserved = room.reserved === true;
+                        console.log(`[Reserve Check] ${currentRoomId}: Server reserved =`, room.reserved, 'isReserved =', isReserved);
                         
                         const locationInfo = await parseLocation(currentRoomId, currentLocation);
                         const duration = formatDuration(Date.now() - new Date(room.created).getTime());
 
-                    // Erstelle Link oder Popup-Handler
-                    const linkUrl = isReserved ? '#' : `watch.php?room=${encodeURIComponent(currentRoomId)}&webrtc=true`;
+                    // Erstelle Link (immer klickbar). Reserviert blendet nur das Overlay ein.
+                    const linkUrl = `watch-cam.php?room=${encodeURIComponent(currentRoomId)}`;
                     const linkTarget = ''; // Kein target="_blank" - öffnet im selben Tab
 
                     const hasCoords = locationInfo && locationInfo.lat !== null && locationInfo.lon !== null;
@@ -1153,7 +677,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
 
                     // HTML mit <a> Link
                     card.innerHTML = `
-                        <a href="${linkUrl}" ${linkTarget ? `target="${linkTarget}"` : ''} style="text-decoration: none; color: inherit; display: block; width: 100%; height: 100%;" ${isReserved ? 'onclick="return false;"' : ''}>
+                        <a href="${linkUrl}" ${linkTarget ? `target="${linkTarget}"` : ''} style="text-decoration: none; color: inherit; display: block; width: 100%; height: 100%;">
                             <div class="stream-thumbnail" style="position: relative;">
                                 ${locationBadgeMarkup}
                                 <div class="live-badge">
@@ -1195,26 +719,8 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                     thumbVideo.style.pointerEvents = 'none'; // Video blockiert Klicks nicht
                     card.querySelector('.stream-thumbnail').prepend(thumbVideo);
                     
-                    // Wenn reserviert, Popup bei Klick
-                    if (isReserved) {
-                        card.querySelector('a').addEventListener('click', function(e) {
-                            e.preventDefault();
-                            showReservedPopup();
-                        });
-                    }
-
-                    // Falls Autoplay blockiert ist, erst beim Scroll in den Viewport starten (nur für Videos)
-                    if (thumbVideo.tagName === 'VIDEO') {
-                        const observer = new IntersectionObserver(entries => {
-                            entries.forEach(entry => {
-                                if (entry.isIntersecting) {
-                                    thumbVideo.play().catch(() => {});
-                                    observer.disconnect();
-                                }
-                            });
-                        });
-                        observer.observe(card);
-                    }
+                    // Kein Klick-Block mehr bei Reserviert: Overlay ist nur visuell während Checkout
+                    // Lazy Loading ist bereits in createThumbnailVideo() implementiert
 
                     // WebRTC Vorschau nur laden, wenn Karte sichtbar wird; beenden, wenn sie wieder verschwindet
                     const previewVideoEl = card.querySelector(`#preview_${currentRoomId}`);
@@ -1282,7 +788,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             
             // Video-Streams: ohne webrtc Parameter
             if (hasVideo) {
-                const url = `watch.php?room=${encodeURIComponent(roomId)}`;
+                const url = `watch-movie.php?room=${encodeURIComponent(roomId)}`;
                 console.log('[showPopover] Öffne Video:', url);
                 window.open(url, '_blank');
                 return;
@@ -1290,7 +796,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             
             // Live-Streams: mit webrtc Parameter
             if (!isReserved) {
-                const url = `watch.php?room=${encodeURIComponent(roomId)}&webrtc=true`;
+                const url = `watch-cam.php?room=${encodeURIComponent(roomId)}`;
                 console.log('[showPopover] Öffne Live-Stream:', url);
                 window.open(url, '_blank');
                 return;

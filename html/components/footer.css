@@ -2,13 +2,14 @@
 .plnx-footer {
     background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 15, 0.95) 20%, rgba(10, 10, 15, 1) 100%);
     border-top: 1px solid rgba(212, 175, 55, 0.15);
-    padding: 60px 40px 40px;
+    padding: 60px 0 40px;
     margin-top: 80px;
 }
 
 .footer-content {
-    width: min(1600px, calc(100% - 80px));
+    max-width: 1600px;
     margin: 0 auto;
+    padding: 0 40px;
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 60px;
@@ -67,9 +68,9 @@
 }
 
 .footer-bottom {
-    width: min(1600px, calc(100% - 80px));
+    max-width: 1600px;
     margin: 0 auto;
-    padding-top: 30px;
+    padding: 30px 40px 0;
     border-top: 1px solid rgba(212, 175, 55, 0.1);
     display: flex;
     justify-content: space-between;

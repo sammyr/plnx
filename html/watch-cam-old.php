@@ -8,9 +8,9 @@ $videoFiles = [
     'demo_horrible_boss_stream' => 'Horrible-Boss.m4v'
 ];
 
-$roomId = $_GET['room'] ?? 'demo_video_stream';
-$isWebRTC = isset($_GET['webrtc']) && $_GET['webrtc'] === 'true';
-$videoFile = $videoFiles[$roomId] ?? 'ttr.m4v';
+$roomId = $_GET['room'] ?? 'Driver-Berlin-001';
+$isWebRTC = true; // Cam-Seite: immer WebRTC
+$videoFile = ''; // Nicht verwendet bei WebRTC
 
 // Location-Daten aus URL-Parametern
 $location = $_GET['location'] ?? '';
@@ -670,13 +670,7 @@ $gpsLon = $_GET['lon'] ?? '';
                 </div>
             </div>
 
-            <!-- Info-Sektion unter dem Video -->
-            <div class="video-info">
-                <h2 class="video-title" id="videoTitleBelow"></h2>
-                <div id="addressLine" style="margin-top: 8px; color: var(--text-secondary); font-size: 14px; display: none;">
-                    📍 <span id="addressText"></span>
-                </div>
-            </div>
+            <!-- Info-Sektion unter dem Video (entfernt) -->
         </div>
 
         <!-- Sidebar (nur bei WebRTC/Kamera-Streams anzeigen) -->
@@ -701,8 +695,7 @@ $gpsLon = $_GET['lon'] ?? '';
         const remainingTime = document.getElementById('remainingTime');
 
         // WebRTC Variablen
-        const HOSTNAME = window.location.hostname;
-        const SIGNALING_SERVER = `ws://${HOSTNAME}:3000`;
+        const SIGNALING_SERVER = 'ws://localhost:3000';
         const ICE_SERVERS = [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' }
@@ -811,14 +804,8 @@ $gpsLon = $_GET['lon'] ?? '';
                     locationOverlay.href = mapsUrl;
                     locationOverlay.style.display = 'flex';
                     locationOverlay.title = isRealLocation ? 'In Google Maps öffnen' : 'Demo-Standort (In Google Maps öffnen)';
-
-                    // Adresse unter dem Video anzeigen
-                    const addressLine = document.getElementById('addressLine');
-                    const addressText = document.getElementById('addressText');
-                    if (addressLine && addressText) {
-                        addressText.textContent = locationData.address;
-                        addressLine.style.display = 'block';
-                    }
+                    
+                    // Adresse wird nur im Overlay angezeigt, nicht mehr unter dem Video
                 }
             }
         }
@@ -905,7 +892,7 @@ $gpsLon = $_GET['lon'] ?? '';
 
         function initVideoFileStream() {
             // Prüfe ob HLS-Stream verfügbar ist (SRS läuft auf Port 8081)
-            const hlsStreamUrl = `http://${HOSTNAME}:8081/live/${roomId}.m3u8`;
+            const hlsStreamUrl = `http://localhost:8081/live/${roomId}.m3u8`;
             const mp4FallbackUrl = '/videos/' + videoFile;
             
             console.log('Versuche HLS-Stream:', hlsStreamUrl);
@@ -1406,11 +1393,10 @@ $gpsLon = $_GET['lon'] ?? '';
                 volumeBar.value = video.volume * 100;
                 localStorage.setItem('plnx_volume', video.volume);
             } else {
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                    </svg>
-                `;
+                // Mute: Speichere aktuelle Lautstärke und mute
+                volumeBeforeMute = video.volume;
+                video.muted = true;
+                localStorage.setItem('plnx_volume_before_mute', volumeBeforeMute);
             }
         }
 
@@ -1496,22 +1482,25 @@ $gpsLon = $_GET['lon'] ?? '';
 
 // Keyboard Shortcuts
 document.addEventListener('keydown', (e) => {
+    // Ignoriere Shortcuts wenn Input/Textarea fokussiert ist
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return; // Lasse normale Tastatureingabe zu
+    }
+    
     if (e.code === 'Space') {
         e.preventDefault();
         togglePlayPause();
-    } else if (e.code === 'KeyF') {
-        toggleFullscreen();
     } else if (e.code === 'KeyM') {
         toggleMute();
     }
+    // KeyF für Fullscreen deaktiviert
 });
 
         // Debug: Zeige Video-Quelle
         console.log('Video-Quelle:', video.currentSrc || video.src);
         console.log('Video bereit:', video.readyState);
     </script>
-
-    <?php include 'components/footer.php'; ?>
     
     <!-- Chat-Fenster (in Sidebar) -->
     <div id="chatWindow" style="display: none; width: 100%; background: linear-gradient(135deg, rgba(26, 26, 36, 0.98), rgba(20, 20, 28, 0.98)); border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(212, 175, 55, 0.2); backdrop-filter: blur(20px); flex-direction: column; animation: slideInUp 0.3s ease-out; margin-top: 20px;">
@@ -1579,10 +1568,16 @@ document.addEventListener('keydown', (e) => {
         let chatStartTime = null;
         
         function openChatWindow() {
+            console.log('[openChatWindow] Funktion gestartet');
+            
             // Verschiebe Chat in Sidebar
             const chatWindow = document.getElementById('chatWindow');
             const chatContainer = document.getElementById('chatWindowContainer');
             const sidebar = document.getElementById('sidebar');
+            
+            console.log('[openChatWindow] chatWindow:', chatWindow);
+            console.log('[openChatWindow] chatContainer:', chatContainer);
+            console.log('[openChatWindow] sidebar:', sidebar);
             
             if (chatWindow && chatContainer && sidebar) {
                 // Verstecke ALLE Kinder der Sidebar außer chatWindowContainer
@@ -1629,17 +1624,54 @@ document.addEventListener('keydown', (e) => {
             const chatWindow = document.getElementById('chatWindow');
             const sidebar = document.getElementById('sidebar');
             
-            // Stoppe Timer
-            if (chatTimeInterval) {
-                clearInterval(chatTimeInterval);
-                chatTimeInterval = null;
-            }
-            chatStartTime = null;
-            
             if (chatWindow) {
                 chatWindow.style.display = 'none';
             }
             
+            if (sidebar) {
+                sidebar.style.display = 'block';
+            }
+            
+            // Timer stoppen
+            if (chatTimeInterval) {
+                clearInterval(chatTimeInterval);
+                chatTimeInterval = null;
+            }
+            
+            // Reservierung aufheben
+            unreserveStream();
+        }
+        
+        function unreserveStream() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            
+            if (roomId) {
+                // Verwende sendBeacon für zuverlässige Requests beim Verlassen
+                const url = `http://localhost:3000/api/reserve/${encodeURIComponent(roomId)}`;
+                
+                // Versuche sendBeacon (funktioniert beim Verlassen der Seite)
+                const beaconSent = navigator.sendBeacon(url, JSON.stringify({ _method: 'DELETE' }));
+                
+                if (beaconSent) {
+                    console.log(`[Unreserve] Beacon gesendet für ${roomId}`);
+                } else {
+                    // Fallback: normaler fetch
+                    fetch(url, {
+                        method: 'DELETE',
+                        keepalive: true // Wichtig für beforeunload
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log(`[Unreserve] Reservierung aufgehoben für ${roomId}:`, data);
+                    })
+                    .catch(err => {
+                        console.error('[Unreserve] Fehler beim Aufheben der Reservierung:', err);
+                    });
+                }
+            }
+        }    
+        
             // Schließe Payment-Popover IMMER (egal ob sichtbar oder nicht)
             const paymentPopover = document.getElementById('paymentPopover');
             if (paymentPopover) {
@@ -1679,9 +1711,13 @@ document.addEventListener('keydown', (e) => {
         
         // Zeige Buchungsbestätigung
         function showBookingConfirmation() {
+            console.log('[showBookingConfirmation] Funktion gestartet');
             const confirmation = document.getElementById('bookingConfirmation');
+            console.log('[showBookingConfirmation] confirmation Element:', confirmation);
+            
             if (confirmation) {
                 confirmation.style.display = 'block';
+                console.log('[showBookingConfirmation] Bestätigung angezeigt');
                 
                 // Verstecke nach 5 Sekunden
                 setTimeout(() => {
@@ -1744,9 +1780,33 @@ document.addEventListener('keydown', (e) => {
         
         // Öffne Chat nach Zahlung (wird von premium-card.php aufgerufen)
         window.openDriverChat = function() {
-            showBookingConfirmation();
-            openChatWindow();
+            console.log('[openDriverChat] Funktion aufgerufen');
+            console.log('[openDriverChat] showBookingConfirmation:', typeof showBookingConfirmation);
+            console.log('[openDriverChat] openChatWindow:', typeof openChatWindow);
+            
+            try {
+                showBookingConfirmation();
+                openChatWindow();
+                console.log('[openDriverChat] Chat sollte jetzt geöffnet sein');
+            } catch (error) {
+                console.error('[openDriverChat] Fehler:', error);
+            }
         };
+        
+        // Test: Funktion sofort nach Definition prüfen
+        console.log('[INIT] window.openDriverChat definiert:', typeof window.openDriverChat);
+        
+        // Reservierung aufheben beim Verlassen der Seite
+        window.addEventListener('beforeunload', () => {
+            unreserveStream();
+        });
+        
+        // Reservierung aufheben beim Schließen des Tabs (zusätzlich)
+        window.addEventListener('pagehide', () => {
+            unreserveStream();
+        });
     </script>
+    
+    <?php include 'components/footer.php'; ?>
 </body>
 </html>
