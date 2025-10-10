@@ -1,0 +1,42 @@
+FROM ossrs/srs:5
+
+# Installiere PHP-FPM, FFmpeg und benötigte Extensions
+RUN apt-get update && apt-get install -y \
+    php7.4-fpm \
+    php7.4-cli \
+    php7.4-common \
+    php7.4-mysql \
+    php7.4-zip \
+    php7.4-gd \
+    php7.4-mbstring \
+    php7.4-curl \
+    php7.4-xml \
+    php7.4-bcmath \
+    nginx \
+    ffmpeg \
+    supervisor \
+    netcat \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# PHP-FPM Konfiguration
+RUN sed -i 's/listen = \/run\/php\/php7.4-fpm.sock/listen = 127.0.0.1:9000/' /etc/php/7.4/fpm/pool.d/www.conf
+
+# Nginx Konfiguration für PHP
+COPY nginx-php.conf /etc/nginx/sites-available/default
+
+# Supervisor Konfiguration
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Stream-Check Script
+COPY stream-check.sh /usr/local/bin/stream-check.sh
+RUN chmod +x /usr/local/bin/stream-check.sh
+
+# Erstelle Log-Verzeichnisse
+RUN mkdir -p /var/log/supervisor /var/run
+
+# Exponiere Ports
+EXPOSE 1935 1985 8080 9000
+
+# Starte Supervisor (managed alle Services)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

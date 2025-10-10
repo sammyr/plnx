@@ -1,0 +1,147 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║   🎥 STREAMING SERVER - SCHNELLSTART (WebRTC + SRS) 🎥        ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+
+📋 VORAUSSETZUNGEN
+══════════════════════════════════════════════════════════════════
+✓ Windows 10
+✓ Docker Desktop installiert und gestartet
+✓ OBS Studio (optional, zum Streamen)
+
+
+🚀 SCHRITT 1: SERVER STARTEN
+══════════════════════════════════════════════════════════════════
+
+1. Docker Desktop starten (warten bis grünes Symbol)
+
+2. PowerShell in diesem Ordner öffnen
+
+3. Befehl ausführen:
+   
+   docker-compose up -d
+
+4. Warten bis Download abgeschlossen (beim ersten Mal)
+
+
+✅ SCHRITT 2: PRÜFEN OB SERVER LÄUFT
+══════════════════════════════════════════════════════════════════
+
+Befehl:  docker-compose ps
+
+Erwartete Ausgabe:
+NAME                    STATUS
+srs-streaming-server    Up X seconds
+
+
+⚡ SCHRITT 3: WEBRTC-STREAMING (ECHTZEIT - EMPFOHLEN!)
+══════════════════════════════════════════════════════════════════
+
+Minimale Latenz (~100-300ms)!
+
+BROADCASTER (Stream senden):
+  1. http://localhost:8080/stream.html
+  2. "Kamera starten" klicken
+  3. "Broadcast starten" klicken
+  4. Room-ID merken (z.B. room_abc123)
+
+VIEWER (Stream empfangen):
+  1. http://localhost:8080/viewer.html
+  2. Room-ID eingeben ODER "Verfügbare Streams" klicken
+  3. "Stream verbinden" klicken
+
+→ Ausführliche Anleitung: WEBRTC-ANLEITUNG.md
+
+
+🎬 ALTERNATIVE: OBS + SRS (PROFESSIONELL)
+══════════════════════════════════════════════════════════════════
+
+OBS Studio → Einstellungen → Stream:
+
+  Service:         Benutzerdefiniert
+  Server:          rtmp://localhost:1935/live
+  Stream-Schlüssel: livestream
+
+Dann: "Streaming starten" klicken
+
+
+🌐 SCHRITT 4: STREAM ANSEHEN
+══════════════════════════════════════════════════════════════════
+
+WebRTC Viewer:   http://localhost:8080/viewer.html
+HTML-Player:     http://localhost:8080/index.html
+
+Oder direkt:
+  HLS:      http://localhost:8080/live/livestream.m3u8
+  HTTP-FLV: http://localhost:8080/live/livestream.flv
+
+
+📊 WICHTIGE URLS
+══════════════════════════════════════════════════════════════════
+
+WebRTC Broadcaster: http://localhost:8080/stream.html
+WebRTC Viewer:      http://localhost:8080/viewer.html
+HTML-Player:        http://localhost:8080/index.html
+HTTP API:           http://localhost:1985/api/v1/
+Signaling Server:   http://localhost:3000/health
+RTMP Publish:       rtmp://localhost:1935/live/livestream
+
+
+🔧 NÜTZLICHE BEFEHLE
+══════════════════════════════════════════════════════════════════
+
+Server starten:      docker-compose up -d
+Server stoppen:      docker-compose stop
+Server neu starten:  docker-compose restart
+Status prüfen:       docker-compose ps
+Logs anzeigen:       docker-compose logs -f
+Server entfernen:    docker-compose down
+
+
+🐛 PROBLEMLÖSUNG
+══════════════════════════════════════════════════════════════════
+
+Problem: "Docker läuft nicht"
+→ Docker Desktop manuell starten
+
+Problem: "Stream wird nicht angezeigt"
+→ Prüfe: docker-compose ps
+→ Prüfe: OBS sendet Stream
+→ Prüfe: Richtige URL im Browser
+
+Problem: "Port bereits belegt"
+→ Prüfe: netstat -ano | findstr :1935
+→ Stoppe anderen Prozess oder ändere Port
+
+
+💡 ALTERNATIVE: POWERSHELL-SKRIPTE
+══════════════════════════════════════════════════════════════════
+
+Einfacher Start:  .\start.ps1
+Server stoppen:   .\stop.ps1
+Status anzeigen:  .\status.ps1
+
+
+📚 WEITERE HILFE
+══════════════════════════════════════════════════════════════════
+
+WebRTC Echtzeit-Streaming: WEBRTC-ANLEITUNG.md  ⚡ NEU!
+Ausführliche Anleitung:    README.md
+OBS-Konfiguration:         OBS-ANLEITUNG.md
+Browser-Streaming:         BROWSER-STREAMING.md
+
+
+💡 LATENZ-VERGLEICH
+══════════════════════════════════════════════════════════════════
+
+WebRTC:    ~100-300ms   ⭐ ECHTZEIT!
+HTTP-FLV:  ~1-3 Sek.
+HLS:       ~5-10 Sek.
+RTMP:      ~2-5 Sek.
+
+
+╔════════════════════════════════════════════════════════════════╗
+║                    VIEL ERFOLG! 🚀                             ║
+╚════════════════════════════════════════════════════════════════╝

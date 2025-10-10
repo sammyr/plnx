@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Video.js für professionellen Player -->
+    <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+    <!-- HTTP-FLV Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-card: #1a1a24;
+            --accent: #6366f1;
+            --accent-gold: #d4af37;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --border: rgba(255, 255, 255, 0.1);
+            --live-red: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            gap: 24px;
+            padding: 24px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Video Section */
+        .video-section {
+            flex: 1;
+        }
+
+        .video-wrapper {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-container {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .live-badge {
+            background: var(--live-red);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .viewer-count {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .video-info {
+            padding: 24px;
+            background: var(--bg-card);
+        }
+
+        .stream-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .stream-meta {
+            display: flex;
+            gap: 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent-gold);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+
+        /* Stream Quality Selector */
+        .quality-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .quality-btn {
+            flex: 1;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quality-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .quality-btn:hover {
+            border-color: var(--accent);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">LIVE STREAM</div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="window.location.href='/'">← Zurück</button>
+            <button class="btn btn-primary">Broadcaster werden</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Video Section -->
+        <div class="video-section">
+            <div class="video-wrapper">
+                <div class="video-container">
+                    <video id="videoPlayer" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto">
+                        <p class="vjs-no-js">
+                            Um diesen Stream anzusehen, aktiviere bitte JavaScript.
+                        </p>
+                    </video>
+                    
+                    <div class="video-overlay">
+                        <div class="live-badge">
+                            <div class="live-dot"></div>
+                            <span>LIVE</span>
+                        </div>
+                        <div class="viewer-count">
+                            👁️ <span id="viewerCount">0</span> Zuschauer
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-info">
+                    <h1 class="stream-title" id="streamTitle">Live Stream</h1>
+                    <div class="stream-meta">
+                        <span>🎥 HD Qualität</span>
+                        <span>⏱️ <span id="streamDuration">00:00</span></span>
+                        <span>📊 <span id="bitrate">0</span> kbps</span>
+                    </div>
+
+                    <div class="quality-selector">
+                        <button class="quality-btn" onclick="switchQuality('auto')">Auto</button>
+                        <button class="quality-btn active" onclick="switchQuality('hd')">HD</button>
+                        <button class="quality-btn" onclick="switchQuality('sd')">SD</button>
+                        <button class="quality-btn" onclick="switchQuality('low')">Low</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="info-card">
+                <h3 class="card-title">Stream-Informationen</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value" id="streamStatus">LIVE</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Zuschauer</span>
+                    <span class="stat-value" id="viewerCountSidebar">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dauer</span>
+                    <span class="stat-value" id="durationSidebar">00:00:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Qualität</span>
+                    <span class="stat-value">1080p HD</span>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3 class="card-title">Technische Details</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Protokoll</span>
+                    <span class="stat-value">HTTP-FLV</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Codec</span>
+                    <span class="stat-value">H.264</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Latenz</span>
+                    <span class="stat-value">~1-2s</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Stream-Konfiguration
+        const STREAM_NAME = 'livestream'; // Änderbar über URL-Parameter
+        const SERVER_URL = window.location.origin;
+        
+        // URL-Parameter auslesen
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamName = urlParams.get('stream') || STREAM_NAME;
+        
+        // Stream-URLs
+        const FLV_URL = `${SERVER_URL}/live/${streamName}.flv`;
+        const HLS_URL = `${SERVER_URL}/live/${streamName}.m3u8`;
+        
+        console.log('FLV URL:', FLV_URL);
+        console.log('HLS URL:', HLS_URL);
+        
+        document.getElementById('streamTitle').textContent = streamName.toUpperCase();
+
+        // FLV.js Player initialisieren
+        let flvPlayer = null;
+        
+        if (flvjs.isSupported()) {
+            const videoElement = document.getElementById('videoPlayer');
+            
+            flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                url: FLV_URL,
+                isLive: true,
+                hasAudio: true,
+                hasVideo: true,
+                enableWorker: true,
+                enableStashBuffer: false,
+                stashInitialSize: 128,
+                cors: true
+            }, {
+                enableWorker: true,
+                enableStashBuffer: false,
+                lazyLoad: false,
+                lazyLoadMaxDuration: 3 * 60,
+                seekType: 'range',
+                autoCleanupSourceBuffer: true
+            });
+            
+            flvPlayer.attachMediaElement(videoElement);
+            flvPlayer.load();
+            
+            // Auto-Play
+            flvPlayer.on(flvjs.Events.METADATA_ARRIVED, () => {
+                console.log('Stream-Metadaten empfangen');
+                videoElement.play().catch(e => {
+                    console.log('Autoplay blockiert, Benutzer muss Play klicken');
+                });
+            });
+            
+            flvPlayer.on(flvjs.Events.ERROR, (errorType, errorDetail, errorInfo) => {
+                console.error('FLV Player Fehler:', errorType, errorDetail, errorInfo);
+                document.getElementById('streamStatus').textContent = 'OFFLINE';
+                document.getElementById('streamStatus').style.color = '#ef4444';
+            });
+            
+        } else {
+            console.log('FLV.js nicht unterstützt, verwende HLS');
+            // Fallback zu HLS
+            const video = document.getElementById('videoPlayer');
+            video.src = HLS_URL;
+            video.load();
+        }
+
+        // Zuschauer-Simulation (in Produktion: von API abrufen)
+        let viewerCount = Math.floor(Math.random() * 500) + 100;
+        function updateViewers() {
+            viewerCount += Math.floor(Math.random() * 10) - 5;
+            viewerCount = Math.max(50, viewerCount);
+            document.getElementById('viewerCount').textContent = viewerCount;
+            document.getElementById('viewerCountSidebar').textContent = viewerCount;
+        }
+        setInterval(updateViewers, 5000);
+        updateViewers();
+
+        // Stream-Dauer
+        let streamStartTime = Date.now();
+        function updateDuration() {
+            const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('durationSidebar').textContent = timeString;
+            
+            const shortTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('streamDuration').textContent = shortTime;
+        }
+        setInterval(updateDuration, 1000);
+        updateDuration();
+
+        // Qualitäts-Wechsel
+        function switchQuality(quality) {
+            console.log('Wechsle zu Qualität:', quality);
+            document.querySelectorAll('.quality-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            // Hier könntest du verschiedene Stream-URLs für verschiedene Qualitäten laden
+        }
+
+        // Cleanup beim Verlassen
+        window.addEventListener('beforeunload', () => {
+            if (flvPlayer) {
+                flvPlayer.pause();
+                flvPlayer.unload();
+                flvPlayer.detachMediaElement();
+                flvPlayer.destroy();
+            }
+        });
+    </script>
+</body>
+</html>

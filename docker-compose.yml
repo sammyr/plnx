@@ -1,0 +1,49 @@
+services:
+  srs:
+    image: ossrs/srs:5
+    container_name: srs-streaming-server
+    ports:
+      - "1935:1935"   # RTMP Port
+      - "1985:1985"   # HTTP API Port
+      - "8081:8080"   # HTTP Server Port (HLS/FLV auf 8081)
+    volumes:
+      - ./srs.conf:/usr/local/srs/conf/srs.conf
+      - ./html:/usr/local/srs/objs/nginx/html
+    restart: unless-stopped
+    environment:
+      - CANDIDATE=0.0.0.0
+    networks:
+      - srs-network
+
+  nginx-php:
+    image: php:7.4-fpm-alpine
+    container_name: nginx-php-server
+    ports:
+      - "8080:80"   # HTTP Server Port für PHP/HTML
+    volumes:
+      - ./html:/var/www/html
+    working_dir: /var/www/html
+    command: php -S 0.0.0.0:80 -t /var/www/html
+    restart: unless-stopped
+    depends_on:
+      - srs
+    networks:
+      - srs-network
+
+  webrtc-signaling:
+    image: node:18-alpine
+    container_name: webrtc-signaling-server
+    working_dir: /app
+    ports:
+      - "3000:3000"   # WebRTC Signaling Server
+    volumes:
+      - ./signaling-server:/app
+      - ./html:/app/html
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    networks:
+      - srs-network
+
+networks:
+  srs-network:
+    driver: bridge

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Stream</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@200;300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-card: #1a1a24;
+            --accent-gold: #d4af37;
+            --accent-gold-light: #f4d03f;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --border: rgba(212, 175, 55, 0.2);
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 40px;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 28px;
+            font-weight: 400;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-gold);
+            transform: translateX(-2px);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            gap: 40px;
+            padding: 120px 40px 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Video Section */
+        .video-section {
+            flex: 1;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--border);
+        }
+
+        .video-container {
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+
+        .video-info {
+            padding: 32px;
+        }
+
+        .video-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 32px;
+            font-weight: 400;
+            margin-bottom: 16px;
+            line-height: 1.3;
+        }
+
+        .video-meta {
+            display: flex;
+            gap: 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+        }
+
+        .card-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--accent-gold);
+        }
+
+        /* Time Display */
+        .time-display {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .current-time {
+            font-size: 48px;
+            font-weight: 300;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .current-date {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 24px 0;
+        }
+
+        /* Duration */
+        .duration-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .duration-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .duration-value {
+            font-size: 18px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        /* Price Display */
+        .price-container {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(244, 208, 63, 0.05));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+        }
+
+        .price-amount {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 56px;
+            font-weight: 400;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .price-currency {
+            font-size: 24px;
+            margin-right: 4px;
+        }
+
+        .price-period {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .stat-item {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Action Button */
+        .action-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-light));
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--bg-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -10px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+            }
+
+            .container {
+                padding: 100px 20px 40px;
+            }
+
+            .logo {
+                font-size: 24px;
+            }
+
+            .video-info {
+                padding: 24px;
+            }
+
+            .video-title {
+                font-size: 24px;
+            }
+
+            .info-card {
+                padding: 24px;
+            }
+
+            .current-time {
+                font-size: 36px;
+            }
+
+            .price-amount {
+                font-size: 42px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">PREMIUM</div>
+        <button class="back-btn" onclick="window.history.back()">← Zurück</button>
+    </div>
+
+    <div class="container">
+        <!-- Video Section -->
+        <div class="video-section">
+            <div class="video-wrapper">
+                <div class="video-container">
+                    <video id="videoPlayer" controls preload="auto" style="background: #000;" crossorigin="anonymous">
+                        <!-- Video-Quelle wird dynamisch per JavaScript gesetzt -->
+                        Dein Browser unterstützt das Video-Tag nicht.
+                    </video>
+                    <div class="video-overlay">
+                        <div class="live-dot"></div>
+                        <span>LIVE STREAM</span>
+                    </div>
+                    <div id="loadingIndicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
+                        <div style="text-align: center; color: white;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                            <div style="font-size: 18px; margin-bottom: 8px;">Lädt Video...</div>
+                            <div id="loadingProgress" style="font-size: 14px; color: #d4af37;">0%</div>
+                        </div>
+                    </div>
+                    <div id="playButton" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11;">
+                        <button onclick="document.getElementById('videoPlayer').play(); this.parentElement.style.display='none';" 
+                                style="background: linear-gradient(135deg, #d4af37, #f4d03f); border: none; color: #0a0a0f; 
+                                       padding: 20px 40px; font-size: 20px; font-weight: 700; border-radius: 50px; 
+                                       cursor: pointer; box-shadow: 0 10px 30px rgba(212, 175, 55, 0.5);">
+                            ▶ Video abspielen
+                        </button>
+                    </div>
+                </div>
+                <div class="video-info">
+                    <h1 class="video-title" id="videoTitle">Premium Live Stream</h1>
+                    <div class="video-meta">
+                        <div class="meta-item">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                            </svg>
+                            <span id="viewerCount">1,234</span> Zuschauer
+                        </div>
+                        <div class="meta-item">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                            </svg>
+                            <span id="streamDuration">00:00:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Time Card -->
+            <div class="info-card">
+                <h2 class="card-title">Aktuelle Zeit</h2>
+                <div class="time-display">
+                    <div class="current-time" id="currentTime">00:00:00</div>
+                    <div class="current-date" id="currentDate">Lädt...</div>
+                </div>
+                <div class="divider"></div>
+                <div class="duration-info">
+                    <span class="duration-label">Gesamtdauer</span>
+                    <span class="duration-value" id="totalDuration">--:--</span>
+                </div>
+                <div class="duration-info">
+                    <span class="duration-label">Verbleibend</span>
+                    <span class="duration-value" id="remainingTime">--:--</span>
+                </div>
+            </div>
+
+            <!-- Price Card -->
+            <div class="info-card">
+                <h2 class="card-title">Premium Zugang</h2>
+                <div class="price-container">
+                    <div class="price-label">Preis pro Stunde</div>
+                    <div class="price-amount">
+                        <span class="price-currency">€</span>49<sup style="font-size: 28px;">.99</sup>
+                    </div>
+                    <div class="price-period">/Stunde</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">4K</div>
+                        <div class="stat-label">Qualität</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">60fps</div>
+                        <div class="stat-label">Framerate</div>
+                    </div>
+                </div>
+
+                <button class="action-btn" style="margin-top: 24px;">Jetzt Buchen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Video Player Basisvariablen
+        const video = document.getElementById('videoPlayer');
+        const streamDuration = document.getElementById('streamDuration');
+        const totalDuration = document.getElementById('totalDuration');
+        const remainingTime = document.getElementById('remainingTime');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // WebRTC Variablen
+        const SIGNALING_SERVER = 'ws://localhost:3000';
+        const ICE_SERVERS = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ];
+        let signalingSocket = null;
+        let peerConnection = null;
+
+        // URL Parameter auslesen
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room') || 'demo_video_stream';
+        const demoVideos = ['demo_video_stream', 'demo_stingray_stream', 'demo_subway_stream', 'demo_chuck_stream'];
+        const isWebRTCStream = urlParams.get('webrtc') === 'true' || !demoVideos.includes(roomId);
+        document.getElementById('videoTitle').textContent = roomId.replace(/_/g, ' ').toUpperCase();
+
+        // Initialisierung je nach Stream-Typ starten
+        if (isWebRTCStream) {
+            console.log('Starte WebRTC-Stream für Raum:', roomId);
+            initWebRTCStream();
+        } else {
+            console.log('Starte Datei-Stream');
+            initVideoFileStream();
+        }
+
+        function initVideoFileStream() {
+            // Wähle Video basierend auf roomId
+            let videoStreamUrl;
+            
+            if (roomId === 'demo_video_stream') {
+                videoStreamUrl = '/videos/ttr.m4v';
+            } else if (roomId === 'demo_stingray_stream') {
+                videoStreamUrl = '/videos/StingrayIntro.mp4';
+            } else if (roomId === 'demo_subway_stream') {
+                videoStreamUrl = '/videos/Subway.m4v';
+            } else if (roomId === 'demo_chuck_stream') {
+                videoStreamUrl = '/videos/Chuck.und.Larry.m4v';
+            } else {
+                videoStreamUrl = '/videos/ttr.m4v'; // Fallback
+            }
+            
+            console.log('Lade Video für roomId:', roomId, '→', videoStreamUrl);
+            
+            video.src = videoStreamUrl;
+            video.load();
+
+            video.onloadstart = () => {
+                console.log('Video lädt...');
+                loadingIndicator.style.display = 'block';
+            };
+
+            video.onprogress = () => {
+                if (video.buffered.length > 0) {
+                    const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                    const duration = video.duration;
+                    if (duration > 0) {
+                        const percent = Math.round((bufferedEnd / duration) * 100);
+                        document.getElementById('loadingProgress').textContent = percent + '% geladen';
+                    }
+                }
+            };
+
+            video.oncanplay = () => {
+                console.log('Video kann abgespielt werden');
+                loadingIndicator.style.display = 'none';
+                video.play().then(() => {
+                    console.log('Video spielt automatisch');
+                    document.getElementById('playButton').style.display = 'none';
+                }).catch(() => {
+                    console.log('Autoplay blockiert, Benutzer muss Play klicken');
+                    document.getElementById('playButton').style.display = 'block';
+                });
+            };
+
+            video.oncanplaythrough = () => {
+                console.log('Video vollständig geladen');
+                loadingIndicator.style.display = 'none';
+            };
+
+            video.onerror = (e) => {
+                console.error('Video-Fehler:', e);
+                console.error('Video src:', video.currentSrc);
+                loadingIndicator.innerHTML = `
+                    <div style="text-align: center; color: #ef4444;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                        <div style="font-size: 18px;">Fehler beim Laden</div>
+                        <div style="font-size: 14px; margin-top: 8px;">Bitte Seite neu laden</div>
+                    </div>
+                `;
+            };
+
+            video.onwaiting = () => {
+                console.log('Video puffert...');
+                loadingIndicator.style.display = 'block';
+            };
+
+            video.onplaying = () => {
+                console.log('Video spielt');
+                loadingIndicator.style.display = 'none';
+            };
+        }
+
+        async function initWebRTCStream() {
+            try {
+                loadingIndicator.style.display = 'block';
+
+                signalingSocket = new WebSocket(SIGNALING_SERVER);
+                signalingSocket.onopen = () => {
+                    console.log('Mit Signaling-Server verbunden');
+                    signalingSocket.send(JSON.stringify({
+                        type: 'viewer',
+                        roomId: roomId
+                    }));
+                };
+
+                signalingSocket.onmessage = async (event) => {
+                    const data = JSON.parse(event.data);
+                    switch (data.type) {
+                        case 'offer':
+                            await handleOffer(data.offer);
+                            break;
+                        case 'ice-candidate':
+                            await handleIceCandidate(data.candidate);
+                            break;
+                        case 'broadcaster-left':
+                            showError('Der Broadcaster hat den Stream beendet.');
+                            break;
+                    }
+                };
+
+                signalingSocket.onerror = (error) => {
+                    console.error('Signaling-Fehler:', error);
+                    showError('Fehler bei der Verbindung zum Signaling-Server');
+                };
+
+                signalingSocket.onclose = () => {
+                    console.warn('Signaling-Verbindung getrennt');
+                };
+            } catch (error) {
+                console.error('WebRTC Initialisierung fehlgeschlagen:', error);
+                showError('WebRTC-Initialisierung fehlgeschlagen');
+            }
+        }
+
+        async function handleOffer(offer) {
+            console.log('Offer empfangen:', offer);
+
+            peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+            peerConnection.ontrack = (event) => {
+                console.log('WebRTC-Stream empfangen!', event.streams[0]);
+                video.srcObject = event.streams[0];
+                document.getElementById('playButton').style.display = 'none';
+                document.getElementById('loadingProgress').textContent = 'Verbunden';
+                loadingIndicator.style.display = 'none';
+
+                // Falls Autoplay blockiert ist
+                video.play().catch(() => {
+                    document.getElementById('playButton').style.display = 'block';
+                });
+            };
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
+                    signalingSocket.send(JSON.stringify({
+                        type: 'ice-candidate',
+                        roomId: roomId,
+                        candidate: event.candidate
+                    }));
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Peer Connection State:', peerConnection.connectionState);
+                if (peerConnection.connectionState === 'failed') {
+                    showError('Verbindung fehlgeschlagen. Bitte versuche es erneut.');
+                }
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            if (signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
+                signalingSocket.send(JSON.stringify({
+                    type: 'answer',
+                    roomId: roomId,
+                    answer: answer
+                }));
+                console.log('Answer gesendet');
+            }
+        }
+
+        async function handleIceCandidate(candidate) {
+            if (peerConnection) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (error) {
+                    console.error('Fehler beim Hinzufügen des ICE-Kandidaten:', error);
+                }
+            }
+        }
+
+        function showError(message) {
+            loadingIndicator.innerHTML = `
+                <div style="text-align: center; color: #ef4444;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                    <div style="font-size: 18px;">${message}</div>
+                </div>
+            `;
+            loadingIndicator.style.display = 'block';
+        }
+
+        // Zeit-Updates
+        function updateTime() {
+            const now = new Date();
+            
+            // Aktuelle Zeit
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+            
+            // Datum
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('de-DE', options);
+        }
+
+        // Stream-Dauer
+        let streamStartTime = Date.now();
+        function updateStreamDuration() {
+            const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            streamDuration.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Video-Dauer - wird angezeigt sobald Metadaten geladen sind
+        video.onloadedmetadata = () => {
+            console.log('Video-Metadaten geladen');
+            const duration = video.duration;
+            
+            if (duration && !isNaN(duration) && isFinite(duration)) {
+                const mins = Math.floor(duration / 60);
+                const secs = Math.floor(duration % 60);
+                totalDuration.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                console.log('Gesamtdauer:', totalDuration.textContent);
+            } else {
+                // Fallback: Geschätzte Dauer
+                totalDuration.textContent = '~42:30';
+                console.log('Dauer nicht verfügbar (NaN), verwende Schätzung');
+            }
+            
+            // Starte Video automatisch
+            video.play().then(() => {
+                console.log('Video spielt ab');
+            }).catch(e => {
+                console.log('Autoplay blockiert, Benutzer muss Play klicken:', e);
+            });
+        };
+
+        // Zusätzlicher Event wenn Dauer verfügbar wird
+        video.ondurationchange = () => {
+            console.log('Dauer geändert:', video.duration);
+            if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
+                const mins = Math.floor(video.duration / 60);
+                const secs = Math.floor(video.duration % 60);
+                totalDuration.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        };
+
+        video.ontimeupdate = () => {
+            if (video.duration && !isNaN(video.duration)) {
+                const remaining = video.duration - video.currentTime;
+                const mins = Math.floor(remaining / 60);
+                const secs = Math.floor(remaining % 60);
+                remainingTime.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        };
+
+        // Zuschauer-Simulation
+        setInterval(() => {
+            const viewers = 1200 + Math.floor(Math.random() * 100);
+            document.getElementById('viewerCount').textContent = viewers.toLocaleString('de-DE');
+        }, 5000);
+
+        // Updates starten
+        updateTime();
+        setInterval(updateTime, 1000);
+        setInterval(updateStreamDuration, 1000);
+
+        // Debug: Zeige Video-Quelle
+        console.log('Video-Quelle:', video.currentSrc || video.src);
+        console.log('Video bereit:', video.readyState);
+    </script>
+</body>
+</html>
