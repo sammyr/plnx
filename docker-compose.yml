@@ -7,8 +7,9 @@ services:
       - "1985:1985"   # HTTP API Port
       - "8081:8080"   # HTTP Server Port (HLS/FLV auf 8081)
     volumes:
-      - ./srs:/usr/local/srs/conf
+      - ./srs/srs.conf:/usr/local/srs/conf/srs.conf
       - ./html:/usr/local/srs/objs/nginx/html
+    command: ["./objs/srs", "-c", "conf/srs.conf"]
     restart: unless-stopped
     environment:
       - CANDIDATE=0.0.0.0
@@ -37,8 +38,7 @@ services:
     ports:
       - "3000:3000"   # WebRTC Signaling Server
     volumes:
-      - ./signaling-server:/app
-      - ./html:/app/html
+      - ./signaling-server:/app:ro
     command: sh -c "npm install && npm start"
     restart: unless-stopped
     networks:
@@ -49,10 +49,10 @@ services:
     container_name: demo-video-streams
     volumes:
       - ./html/videos:/videos:ro
-      - ./start-demo-streams.sh:/start-streams.sh
+      - ./start-demo-streams.sh:/start-streams.sh:ro
       - ./logs:/logs
     entrypoint: ["/bin/bash", "-c"]
-    command: ["apt-get update && apt-get install -y ffmpeg && bash /start-streams.sh"]
+    command: ["apt-get update && apt-get install -y ffmpeg dos2unix && dos2unix /start-streams.sh && chmod +x /start-streams.sh && bash /start-streams.sh"]
     restart: unless-stopped
     depends_on:
       - srs
