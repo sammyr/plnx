@@ -19,7 +19,7 @@ services:
     image: php:7.4-fpm-alpine
     container_name: nginx-php-server
     ports:
-      - "8080:80"   # HTTP Server Port für PHP/HTML
+      - "8082:80"   # HTTP Server Port für PHP/HTML (8082 wegen Konflikt)
     volumes:
       - ./html:/var/www/html
     working_dir: /var/www/html
