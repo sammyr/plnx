@@ -57,9 +57,14 @@ services:
     container_name: auto-hls-streams
     volumes:
       - ./html/videos:/videos:ro
-      - ./auto-start-hls.sh:/start.sh:ro
-    entrypoint: ["/bin/sh"]
-    command: ["/start.sh"]
+      - ./auto-start-hls.sh:/start-src.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      echo "🔧 Fixing line endings and starting streams..."
+      cp /start-src.sh /tmp/start.sh
+      sed -i 's/\r$$//' /tmp/start.sh
+      chmod +x /tmp/start.sh
+      /bin/sh /tmp/start.sh
     restart: unless-stopped
     depends_on:
       - srs
