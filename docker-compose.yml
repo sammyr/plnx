@@ -2,10 +2,11 @@ services:
   srs:
     image: ossrs/srs:5
     container_name: srs-streaming-server
+    expose:
+      - "8080"
     ports:
       - "1935:1935"   # RTMP Port
       - "1985:1985"   # HTTP API Port
-      - "8081:8080"   # HTTP Server Port (HLS/FLV auf 8081)
     volumes:
       - ./srs:/usr/local/srs/conf
       - ./html:/usr/local/srs/objs/nginx/html
@@ -13,12 +14,14 @@ services:
     restart: unless-stopped
     environment:
       - CANDIDATE=0.0.0.0
+    networks:
+      - default
 
   nginx-php:
     image: php:7.4-fpm-alpine
     container_name: nginx-php-server
-    ports:
-      - "8082:80"   # HTTP Server Port für PHP/HTML (8082 wegen Konflikt)
+    expose:
+      - "80"
     volumes:
       - ./html:/var/www/html
     working_dir: /var/www/html
@@ -26,17 +29,21 @@ services:
     restart: unless-stopped
     depends_on:
       - srs
+    networks:
+      - default
 
   webrtc-signaling:
     image: node:18-alpine
     container_name: webrtc-signaling-server
     working_dir: /app
-    ports:
-      - "3000:3000"   # WebRTC Signaling Server
+    expose:
+      - "3000"
     volumes:
       - ./signaling-server:/app:ro
     command: sh -c "npm install && npm start"
     restart: unless-stopped
+    networks:
+      - default
 
   demo-streams:
     image: ubuntu:22.04
@@ -50,3 +57,5 @@ services:
     restart: unless-stopped
     depends_on:
       - srs
+    networks:
+      - default
