@@ -84,7 +84,7 @@
 
     <script>
         const HOSTNAME = window.location.hostname;
-        const SIGNALING_SERVER = `ws://${HOSTNAME}:3000`;
+        const SIGNALING_SERVER = window.location.protocol === 'https:' ? `wss://ws.sammyrichter.de` : `ws://${HOSTNAME}:3000`;
         const ICE_SERVERS = [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' } ];
         let localStream=null, signalingSocket=null, peerConnections=new Map(), roomId=null, isBroadcasting=false, startTime=null, durationInterval=null, statsInterval=null;
         const localVideo=document.getElementById('localVideo');
@@ -104,7 +104,7 @@
         const statsBadge=document.getElementById('statsBadge');
 
         async function getCurrentCity(){try{const r=await fetch('https://ipapi.co/json/',{timeout:3000});const d=await r.json();return d.city||'Berlin'}catch(e){return 'Berlin'}}
-        async function getNextStreamNumber(city){try{const r=await fetch(`http://${HOSTNAME}:3000/rooms`);const d=await r.json();const nums=d.rooms.map(x=>x.roomId).filter(id=>id.startsWith(`Driver-${city}-`)).map(id=>{const m=id.match(/Driver-.*-(\d+)$/);return m?parseInt(m[1]):0});const max=nums.length>0?Math.max(...nums):0;return max+1}catch(e){return 1}}
+        async function getNextStreamNumber(city){try{const protocol=window.location.protocol==='https:'?'https:':'http:';const r=await fetch(`${protocol}//ws.sammyrichter.de/drivers`);const d=await r.json();const nums=d.drivers.map(x=>x.driverId).filter(id=>id.startsWith(`Driver-${city}-`)).map(id=>{const m=id.match(/Driver-.*-(\d+)$/);return m?parseInt(m[1]):0});const max=nums.length>0?Math.max(...nums):0;return max+1}catch(e){return 1}}
 
         async function loadCameras(){try{const devs=await navigator.mediaDevices.enumerateDevices();const vids=devs.filter(d=>d.kind==='videoinput');cameraSelect.innerHTML='';vids.forEach((device,i)=>{const o=document.createElement('option');o.value=device.deviceId;o.text=device.label||`Kamera ${i+1}`;cameraSelect.appendChild(o)});}catch(e){console.error('Kameras:',e)}}
 
