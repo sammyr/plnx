@@ -988,11 +988,15 @@ $gpsLon = $_GET['lon'] ?? '';
                     console.log('Loading-Indikator versteckt (oncanplay)');
                 }
                 
-                // Autoplay mit Ton
-                video.muted = false;
+                // Autoplay muted (erlaubt), dann unmute nach Start
+                video.muted = true;
                 video.play().then(() => {
-                    console.log('Video spielt automatisch');
-                    // Nochmal sicherstellen
+                    console.log('Video spielt automatisch (muted)');
+                    // Nach kurzem Delay unmute
+                    setTimeout(() => {
+                        video.muted = false;
+                        console.log('Video unmuted');
+                    }, 100);
                     if (loadingIndicator) loadingIndicator.style.display = 'none';
                 }).catch(err => {
                     console.warn('Autoplay blockiert:', err);
