@@ -110,8 +110,7 @@
 
         async function startCamera(){try{const deviceId=cameraSelect.value;const [w,h]=qualitySelect.value.split('x').map(Number);const constraints={video:{deviceId:deviceId?{exact:deviceId}:undefined,width:{ideal:w},height:{ideal:h},frameRate:{ideal:30,max:60}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}};localStream=await navigator.mediaDevices.getUserMedia(constraints);localVideo.srcObject=localStream;startCameraBtn.disabled=true;startBroadcastBtn.disabled=false;cameraSelect.disabled=true;qualitySelect.disabled=true;statusBadge.querySelector('span').textContent='Kamera aktiv';await loadCameras();}catch(e){alert('Fehler beim Kamera-Zugriff');}}
 
-        async function startBroadcast(){try{if(!localStream){alert('Bitte starte zuerst die Kamera!');return}if(!roomIdInput.value.trim()){const city=await getCurrentCity();const n=await getNextStreamNumber(city);roomId=`Driver-${city}-${String(n).padStart(3,'0')}`;}else{roomId=roomIdInput.value.trim();}
-            await connectToSignalingServer();
+        async function startBroadcast(){try{if(!localStream){alert('Bitte starte zuerst die Kamera!');return}if(!signalingSocket || signalingSocket.readyState !== WebSocket.OPEN){await connectToSignalingServer();}if(!roomIdInput.value.trim()){const city=await getCurrentCity();const n=await getNextStreamNumber(city);roomId=`Driver-${city}-${String(n).padStart(3,'0')}`;}else{roomId=roomIdInput.value.trim();}
             let gpsCoords=null;try{const pos=await new Promise((res,rej)=>{navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,enableHighAccuracy:true});});gpsCoords={lat:pos.coords.latitude,lon:pos.coords.longitude};}catch(e){}
             // Telefonnummer optional mitsenden (nur Anzeige-/Logzwecke; Server kann erweitert werden)
             const phone = phoneInput && phoneInput.value ? phoneInput.value : null;
@@ -120,7 +119,7 @@
             // Location Badge füllen
             try{
                 document.getElementById('locationRoom').textContent=roomId.toUpperCase();
-                const res=await fetch(`data/locations.json?t=${Date.now()}`,{cache:'no-store'});
+                const res=await fetch(`/data/locations.json?t=${Date.now()}`,{cache:'no-store'});
                 if(res.ok){
                     const locations=await res.json();
                     const loc=locations[roomId];
@@ -157,10 +156,14 @@
         function updateViewerCount(){const c=peerConnections.size; if(viewerCountText){viewerCountText.textContent=c;} const vc=document.getElementById('viewerCount'); if(vc){vc.textContent=c;}}
         function updateDuration(){if(!startTime)return;const el=Math.floor((Date.now()-startTime)/1000);const m=Math.floor(el/60);const s=el%60;const durEl=document.getElementById('duration'); if(durEl){durEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}}
         async function updateStats(){if(peerConnections.size===0)return;let total=0;for(const [id,pc] of peerConnections){const stats=await pc.getStats();stats.forEach(r=>{if(r.type==='outbound-rtp'&&r.mediaType==='video'&&r.bytesSent){total+=(r.bytesSent*8)/1000;}});}const br=document.getElementById('bitrate'); if(br){br.textContent=Math.round(total);} }        
+        // WebSocket beim Laden verbinden
+        window.addEventListener('load', async () => {
+            await loadCameras();
+            try { await connectToSignalingServer(); } catch(e) { console.warn('WebSocket initial connect failed:', e); }
+        });
         startCameraBtn.addEventListener('click', startCamera);
         startBroadcastBtn.addEventListener('click', startBroadcast);
         stopBtn.addEventListener('click', ()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}peerConnections.forEach(pc=>pc.close());peerConnections.clear();if(signalingSocket){signalingSocket.close();signalingSocket=null;}localVideo.srcObject=null;isBroadcasting=false;startCameraBtn.disabled=false;startBroadcastBtn.disabled=true;stopBtn.disabled=true;cameraSelect.disabled=false;qualitySelect.disabled=false;roomIdInput.disabled=false;statusBadge.classList.remove('live');statusBadge.querySelector('span').textContent='Gestoppt';statsBadge.style.display='none';roomInfo.style.display='none';connectionDot.classList.remove('connected');connectionStatus.textContent='Nicht verbunden';});
-        window.addEventListener('load', loadCameras);
     </script>
 </body>
 </html>
