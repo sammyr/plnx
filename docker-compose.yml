@@ -13,8 +13,6 @@ services:
     restart: unless-stopped
     environment:
       - CANDIDATE=0.0.0.0
-    networks:
-      - srs-network
 
   nginx-php:
     image: php:7.4-fpm-alpine
@@ -28,8 +26,6 @@ services:
     restart: unless-stopped
     depends_on:
       - srs
-    networks:
-      - srs-network
 
   webrtc-signaling:
     image: node:18-alpine
@@ -41,8 +37,6 @@ services:
       - ./signaling-server:/app:ro
     command: sh -c "npm install && npm start"
     restart: unless-stopped
-    networks:
-      - srs-network
 
   demo-streams:
     image: ubuntu:22.04
@@ -56,9 +50,3 @@ services:
     restart: unless-stopped
     depends_on:
       - srs
-    networks:
-      - srs-network
-
-networks:
-  srs-network:
-    driver: bridge
