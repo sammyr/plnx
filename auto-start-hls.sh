@@ -33,3 +33,8 @@ ps | grep ffmpeg | grep -v grep
 # Keep container running - wait for all background jobs
 echo "⏳ Keeping container alive..."
 wait
+
+# If wait exits (shouldn't happen), fall back to infinite loop
+while true; do
+    sleep 3600
+done
