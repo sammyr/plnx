@@ -16,6 +16,8 @@ services:
       - CANDIDATE=0.0.0.0
     networks:
       - default
+    labels:
+      - "traefik.http.services.srs.loadbalancer.server.port=8080"
 
   nginx-php:
     image: php:7.4-fpm-alpine
@@ -31,6 +33,8 @@ services:
       - srs
     networks:
       - default
+    labels:
+      - "traefik.http.services.nginx-php.loadbalancer.server.port=80"
 
   webrtc-signaling:
     image: node:18-alpine
@@ -44,6 +48,8 @@ services:
     restart: unless-stopped
     networks:
       - default
+    labels:
+      - "traefik.http.services.webrtc-signaling.loadbalancer.server.port=3000"
 
   demo-streams:
     image: ubuntu:22.04
