@@ -58,12 +58,7 @@ services:
     volumes:
       - ./html/videos:/videos:ro
       - ./auto-start-hls.sh:/start-src.sh:ro
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      cp /start-src.sh /tmp/start.sh &&
-      sed -i 's/\r$$//' /tmp/start.sh &&
-      chmod +x /tmp/start.sh &&
-      /bin/sh /tmp/start.sh
+    command: ["/bin/sh", "-c", "cp /start-src.sh /tmp/start.sh && sed -i 's/\r$$//' /tmp/start.sh && /bin/sh /tmp/start.sh"]
     restart: unless-stopped
     depends_on:
       - srs
