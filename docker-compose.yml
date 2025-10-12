@@ -57,8 +57,8 @@ services:
     container_name: auto-hls-streams
     volumes:
       - ./html/videos:/videos:ro
+    entrypoint: /bin/sh
     command:
-      - /bin/sh
       - -c
       - |
         echo "🎬 Starting HLS streams..."
