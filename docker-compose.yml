@@ -43,7 +43,7 @@ services:
     expose:
       - "3000"
     volumes:
-      - ./signaling-server:/app:ro
+      - ./signaling-server:/app
     command: sh -c "npm install && npm start"
     restart: unless-stopped
     networks:
