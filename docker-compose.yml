@@ -57,9 +57,28 @@ services:
     container_name: auto-hls-streams
     volumes:
       - ./html/videos:/videos:ro
-      - ./auto-start-hls.sh:/start-src.sh:ro
-    entrypoint: /bin/sh
-    command: ["-c", "cat /start-src.sh > /tmp/start.sh && sed -i 's/\r$$//' /tmp/start.sh && chmod +x /tmp/start.sh && /bin/sh /tmp/start.sh"]
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "🎬 Starting HLS streams..."
+        sleep 5
+        start_stream() {
+            FILE="$1"
+            ROOM="$2"
+            echo "▶️  Starting: $ROOM ($FILE)"
+            ffmpeg -re -stream_loop -1 -i "/videos/$FILE" -c copy -f flv "rtmp://srs:1935/live/$ROOM" > /dev/null 2>&1 &
+            echo "   PID: $!"
+        }
+        start_stream "Subway.m4v" "demo_video_stream"
+        start_stream "Horrible-Boss.m4v" "demo_horrible_boss_stream"
+        start_stream "Chuck.und.Larry.m4v" "demo_chuck_larry_stream"
+        start_stream "ttr.m4v" "demo_ttr_stream"
+        echo "✅ All HLS streams started"
+        ps | grep ffmpeg | grep -v grep
+        echo "⏳ Keeping container alive..."
+        wait
+        while true; do sleep 3600; done
     restart: unless-stopped
     depends_on:
       - srs
