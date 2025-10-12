@@ -52,15 +52,14 @@ services:
     labels:
       - "traefik.http.services.webrtc-signaling.loadbalancer.server.port=3000"
 
-  demo-streams:
-    image: ubuntu:22.04
-    container_name: demo-video-streams
+  auto-hls:
+    image: jrottenberg/ffmpeg:4.4-alpine
+    container_name: auto-hls-streams
     volumes:
       - ./html/videos:/videos:ro
-      - ./start-demo-streams.sh:/start-streams.sh:ro
-      - ./logs:/logs
-    entrypoint: ["/bin/bash", "-c"]
-    command: ["apt-get update && apt-get install -y ffmpeg dos2unix && dos2unix /start-streams.sh && chmod +x /start-streams.sh && bash /start-streams.sh"]
+      - ./auto-start-hls.sh:/start.sh:ro
+    entrypoint: ["/bin/sh"]
+    command: ["/start.sh"]
     restart: unless-stopped
     depends_on:
       - srs
