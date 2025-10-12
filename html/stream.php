@@ -86,7 +86,7 @@
         const HOSTNAME = window.location.hostname;
         const SIGNALING_SERVER = window.location.protocol === 'https:' ? `wss://ws.sammyrichter.de` : `ws://${HOSTNAME}:3000`;
         const ICE_SERVERS = [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' } ];
-        let localStream=null, signalingSocket=null, peerConnections=new Map(), roomId=null, isBroadcasting=false, startTime=null, durationInterval=null, statsInterval=null;
+        let localStream=null, signalingSocket=null, peerConnections=new Map(), roomId=null, isBroadcasting=false, startTime=null, durationInterval=null, statsInterval=null, thumbnailInterval=null;
         const localVideo=document.getElementById('localVideo');
         const cameraSelect=document.getElementById('cameraSelect');
         const qualitySelect=document.getElementById('qualitySelect');
@@ -144,7 +144,7 @@
                 }
             }catch(err){console.warn('Location Badge:',err)}
 
-            startTime=Date.now();durationInterval=setInterval(updateDuration,1000);statsInterval=setInterval(updateStats,2000); if(!localVideo.srcObject){localVideo.srcObject=localStream;} localVideo.play().catch(()=>{});
+            startTime=Date.now();durationInterval=setInterval(updateDuration,1000);statsInterval=setInterval(updateStats,2000);thumbnailInterval=setInterval(uploadThumbnail,2000); if(!localVideo.srcObject){localVideo.srcObject=localStream;} localVideo.play().catch(()=>{});
         }catch(e){console.error('Broadcast:',e)}}
 
         function connectToSignalingServer(){return new Promise((resolve,reject)=>{signalingSocket=new WebSocket(SIGNALING_SERVER);signalingSocket.onopen=()=>{connectionDot.classList.add('connected');connectionStatus.textContent='Verbunden mit Server';resolve();};signalingSocket.onmessage=handleSignalingMessage;signalingSocket.onerror=reject;signalingSocket.onclose=()=>{connectionDot.classList.remove('connected');connectionStatus.textContent='Getrennt';};});}
@@ -156,6 +156,7 @@
         function updateViewerCount(){const c=peerConnections.size; if(viewerCountText){viewerCountText.textContent=c;} const vc=document.getElementById('viewerCount'); if(vc){vc.textContent=c;}}
         function updateDuration(){if(!startTime)return;const el=Math.floor((Date.now()-startTime)/1000);const m=Math.floor(el/60);const s=el%60;const durEl=document.getElementById('duration'); if(durEl){durEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}}
         async function updateStats(){if(peerConnections.size===0)return;let total=0;for(const [id,pc] of peerConnections){const stats=await pc.getStats();stats.forEach(r=>{if(r.type==='outbound-rtp'&&r.mediaType==='video'&&r.bytesSent){total+=(r.bytesSent*8)/1000;}});}const br=document.getElementById('bitrate'); if(br){br.textContent=Math.round(total);} }        
+        function uploadThumbnail(){if(!isBroadcasting||!localVideo.srcObject||localVideo.videoWidth===0)return;const canvas=document.createElement('canvas');canvas.width=localVideo.videoWidth;canvas.height=localVideo.videoHeight;const ctx=canvas.getContext('2d');ctx.drawImage(localVideo,0,0,canvas.width,canvas.height);canvas.toBlob(async(blob)=>{if(!blob)return;const formData=new FormData();formData.append('roomId',roomId);formData.append('thumbnail',blob,`${roomId}.jpg`);try{const protocol=window.location.protocol==='https:'?'https:':'http:';await fetch(`${protocol}//ws.sammyrichter.de/api/upload-thumbnail`,{method:'POST',body:formData});}catch(e){console.warn('Thumbnail-Upload:',e);}},'image/jpeg',0.8);}
         // WebSocket beim Laden verbinden
         window.addEventListener('load', async () => {
             await loadCameras();
@@ -163,7 +164,7 @@
         });
         startCameraBtn.addEventListener('click', startCamera);
         startBroadcastBtn.addEventListener('click', startBroadcast);
-        stopBtn.addEventListener('click', ()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}peerConnections.forEach(pc=>pc.close());peerConnections.clear();if(signalingSocket){signalingSocket.close();signalingSocket=null;}localVideo.srcObject=null;isBroadcasting=false;startCameraBtn.disabled=false;startBroadcastBtn.disabled=true;stopBtn.disabled=true;cameraSelect.disabled=false;qualitySelect.disabled=false;roomIdInput.disabled=false;statusBadge.classList.remove('live');statusBadge.querySelector('span').textContent='Gestoppt';statsBadge.style.display='none';roomInfo.style.display='none';connectionDot.classList.remove('connected');connectionStatus.textContent='Nicht verbunden';});
+        stopBtn.addEventListener('click', ()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}peerConnections.forEach(pc=>pc.close());peerConnections.clear();if(signalingSocket){signalingSocket.close();signalingSocket=null;}if(thumbnailInterval)clearInterval(thumbnailInterval);localVideo.srcObject=null;isBroadcasting=false;startCameraBtn.disabled=false;startBroadcastBtn.disabled=true;stopBtn.disabled=true;cameraSelect.disabled=false;qualitySelect.disabled=false;roomIdInput.disabled=false;statusBadge.classList.remove('live');statusBadge.querySelector('span').textContent='Gestoppt';statsBadge.style.display='none';roomInfo.style.display='none';connectionDot.classList.remove('connected');connectionStatus.textContent='Nicht verbunden';});
     </script>
 </body>
 </html>

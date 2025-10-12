@@ -988,21 +988,23 @@ $gpsLon = $_GET['lon'] ?? '';
                     console.log('Loading-Indikator versteckt (oncanplay)');
                 }
                 
-                // Autoplay muted (erlaubt), dann unmute nach Start
-                video.muted = true;
+                // Robuster Autoplay-Versuch
+                const savedVolume = video.volume; // Aktuelle (gespeicherte) Lautstärke merken
+                video.muted = true; // Immer stumm starten
+
                 video.play().then(() => {
-                    console.log('Video spielt automatisch (muted)');
-                    // Nach kurzem Delay unmute
+                    console.log('Video spielt automatisch (stummgeschaltet)');
+                    // Nach 1 Sekunde die ursprüngliche Lautstärke wiederherstellen
                     setTimeout(() => {
                         video.muted = false;
-                        console.log('Video unmuted');
-                    }, 100);
-                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                        video.volume = savedVolume;
+                        updateVolumeUI(); // UI synchronisieren
+                        console.log(`Lautstärke auf ${Math.round(savedVolume * 100)}% wiederhergestellt`);
+                    }, 1000);
                 }).catch(err => {
-                    console.warn('Autoplay blockiert:', err);
-                    // Zeige Play-Button
+                    console.warn('Autoplay blockiert, zeige Play-Button:', err.message);
                     const playButton = document.getElementById('playButton');
-                    if (playButton) playButton.style.display = 'block';
+                    if (playButton) playButton.style.display = 'flex';
                 });
             };
 

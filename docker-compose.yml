@@ -77,6 +77,7 @@ services:
         start_stream "Horrible-Boss.m4v" "demo_horrible_boss_stream"
         start_stream "Chuck.und.Larry.m4v" "demo_chuck_larry_stream"
         start_stream "ttr.m4v" "demo_ttr_stream"
+        start_stream "StingrayIntro.mp4" "demo_stingray_stream"
         echo "✅ All HLS streams started"
         ps | grep ffmpeg | grep -v grep
         echo "⏳ Keeping container alive..."
