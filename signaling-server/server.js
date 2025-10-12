@@ -5,6 +5,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { spawn } = require('child_process');
 
 const app = express();
 app.use(cors());
@@ -36,6 +37,7 @@ const broadcasters = new Map();
 const viewers = new Map();
 const rooms = new Map();
 const reservedRooms = new Set(); // Reservierte Streams
+const hlsProcs = new Map();
 
 console.log('🚀 WebRTC Signaling Server gestartet');
 
@@ -368,6 +370,33 @@ app.get('/drivers', (req, res) => {
         drivers: activeDrivers,
         total: activeDrivers.length
     });
+});
+
+// HLS Start/Stop Endpunkte
+app.post('/api/hls/start', (req, res) => {
+    const roomId = (req.query.room || 'demo_video_stream').toString();
+    const file = (req.query.file || 'Subway.m4v').toString();
+
+    if (hlsProcs.has(roomId)) return res.json({ success: true, roomId, running: true });
+
+    const src = path.join('/videos', file);
+    const dst = `rtmp://srs:1935/live/${roomId}`;
+    const args = ['-re', '-stream_loop', '-1', '-i', src, '-c', 'copy', '-f', 'flv', dst];
+    const proc = spawn('ffmpeg', args, { stdio: 'ignore' });
+    hlsProcs.set(roomId, proc);
+    proc.on('exit', () => hlsProcs.delete(roomId));
+
+    res.json({ success: true, roomId, running: true });
+});
+
+app.post('/api/hls/stop', (req, res) => {
+    const roomId = (req.query.room || 'demo_video_stream').toString();
+    const p = hlsProcs.get(roomId);
+    if (p) {
+        try { p.kill('SIGINT'); } catch (e) {}
+        hlsProcs.delete(roomId);
+    }
+    res.json({ success: true, roomId, running: false });
 });
 
 // Reservierungs-Endpunkte
