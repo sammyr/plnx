@@ -354,6 +354,22 @@ app.get('/rooms', (req, res) => {
     });
 });
 
+// Alias: /drivers (same as /rooms, for compatibility)
+app.get('/drivers', (req, res) => {
+    const activeDrivers = Array.from(rooms.entries()).map(([roomId, room]) => ({
+        driverId: roomId,
+        viewerCount: room.viewers.size,
+        created: new Date(room.created).toISOString(),
+        location: room.location || null,
+        reserved: reservedRooms.has(roomId)
+    }));
+
+    res.json({
+        drivers: activeDrivers,
+        total: activeDrivers.length
+    });
+});
+
 // Reservierungs-Endpunkte
 app.post('/api/reserve/:roomId', (req, res) => {
     const { roomId } = req.params;
