@@ -59,7 +59,7 @@ services:
       - ./html/videos:/videos:ro
       - ./auto-start-hls.sh:/start-src.sh:ro
     entrypoint: /bin/sh
-    command: ["-c", "cp /start-src.sh /tmp/start.sh && sed -i 's/\r$$//' /tmp/start.sh && chmod +x /tmp/start.sh && /bin/sh /tmp/start.sh"]
+    command: ["-c", "cat /start-src.sh > /tmp/start.sh && sed -i 's/\r$$//' /tmp/start.sh && chmod +x /tmp/start.sh && /bin/sh /tmp/start.sh"]
     restart: unless-stopped
     depends_on:
       - srs
