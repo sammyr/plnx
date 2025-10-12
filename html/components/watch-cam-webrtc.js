@@ -7,7 +7,8 @@ console.log('Starte WebRTC-Stream für Raum:', roomId);
 
 // Verbinde mit Signaling-Server
 function connectSignaling() {
-    signalingSocket = new WebSocket('ws://localhost:3000');
+    const wsUrl = window.location.protocol === 'https:' ? 'wss://ws.sammyrichter.de' : 'ws://localhost:3000';
+    signalingSocket = new WebSocket(wsUrl);
     
     signalingSocket.onopen = () => {
         console.log('Mit Signaling-Server verbunden');

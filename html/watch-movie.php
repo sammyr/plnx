@@ -865,9 +865,11 @@ $gpsLon = $_GET['lon'] ?? '';
         }
 
         function initVideoFileStream() {
-            // Streaming-Server URLs (SRS läuft auf Port 8081 via Docker)
+            // Streaming-Server URLs (SRS via Domain hls.sammyrichter.de)
             // Verwende roomId statt videoFile, da FFmpeg mit roomId streamt
-            const hlsStreamUrl = `http://${HOSTNAME}:8081/live/${roomId}.m3u8`;
+            const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+            const hlsHost = window.location.protocol === 'https:' ? 'hls.sammyrichter.de' : `${HOSTNAME}:8081`;
+            const hlsStreamUrl = `${protocol}//${hlsHost}/live/${roomId}.m3u8`;
             const mp4FallbackUrl = '/videos/' + videoFile;
             
             console.log('Versuche HLS-Stream:', hlsStreamUrl);

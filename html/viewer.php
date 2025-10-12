@@ -103,7 +103,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
     </div>
 
     <script>
-        const SIGNALING_SERVER = 'ws://localhost:3000';
+        const SIGNALING_SERVER = window.location.protocol === 'https:' ? 'wss://ws.sammyrichter.de' : 'ws://localhost:3000';
         const ICE_SERVERS = [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' }
