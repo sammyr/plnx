@@ -3,6 +3,9 @@
 
 echo "🎬 Starting HLS streams..."
 
+# Wait for SRS to be ready
+sleep 5
+
 # Mapping: video file -> room ID
 start_stream() {
     FILE="$1"
@@ -25,7 +28,8 @@ start_stream "ttr.m4v" "demo_ttr_stream"
 
 echo "✅ All HLS streams started"
 echo "📊 Active processes:"
-ps aux | grep ffmpeg | grep -v grep
+ps | grep ffmpeg | grep -v grep
 
-# Keep container running
-tail -f /dev/null
+# Keep container running - wait for all background jobs
+echo "⏳ Keeping container alive..."
+wait
