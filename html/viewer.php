@@ -1,5 +1,6 @@
 <?php
-// Video-Konfiguration (serverseitig)
+// Video-Konfiguration (serverseitig) - Aktualisiert 2025-10-13
+// Nur 3 Videos: Die Totale Erinnerung, Horrible Boss, Stingray
 $demoVideos = [
     ['id' => 'demo_video_stream', 'title' => 'Die Totale Erinnerung', 'file' => 'ttr.m4v', 'thumbnail' => 'ttr_preview.mp4'],
     ['id' => 'demo_horrible_boss_stream', 'title' => 'Horrible Boss', 'file' => 'Horrible-Boss.m4v', 'thumbnail' => 'Horrible-Boss.m4v'],
