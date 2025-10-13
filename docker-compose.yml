@@ -19,22 +19,30 @@ services:
     labels:
       - "traefik.http.services.srs.loadbalancer.server.port=8080"
 
-  nginx-php:
-    image: php:7.4-fpm-alpine
-    container_name: nginx-php-server
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-webserver
     expose:
       - "80"
     volumes:
       - ./html:/var/www/html
-    working_dir: /var/www/html
-    command: php -S 0.0.0.0:80 -t /var/www/html
-    restart: unless-stopped
+      - ./nginx:/etc/nginx/conf.d
     depends_on:
-      - srs
+      - php-fpm
+    restart: unless-stopped
     networks:
       - default
     labels:
       - "traefik.http.services.nginx-php.loadbalancer.server.port=80"
+
+  php-fpm:
+    image: php:7.4-fpm-alpine
+    container_name: php-fpm-server
+    volumes:
+      - ./html:/var/www/html
+    restart: unless-stopped
+    networks:
+      - default
 
   webrtc-signaling:
     image: node:18-alpine
