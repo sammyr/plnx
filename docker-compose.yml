@@ -87,6 +87,8 @@ services:
                 -f flv "rtmp://srs:1935/live/$$ROOM" > /dev/null 2>&1 &
             echo "   PID: $$!"
         }
+        start_stream "ttr.m4v" "demo_video_stream"
+        start_stream "Horrible-Boss.m4v" "demo_horrible_boss_stream"
         start_stream "StingrayIntro.mp4" "demo_stingray_stream"
         echo "✅ All HLS streams started"
         ps | grep ffmpeg | grep -v grep

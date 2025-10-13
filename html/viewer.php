@@ -1,6 +1,8 @@
 <?php
 // Video-Konfiguration (serverseitig)
 $demoVideos = [
+    ['id' => 'demo_video_stream', 'title' => 'Die Totale Erinnerung', 'file' => 'ttr.m4v', 'thumbnail' => 'ttr_preview.mp4'],
+    ['id' => 'demo_horrible_boss_stream', 'title' => 'Horrible Boss', 'file' => 'Horrible-Boss.m4v', 'thumbnail' => 'Horrible-Boss.m4v'],
     ['id' => 'demo_stingray_stream', 'title' => 'Stingray - Intro', 'file' => 'StingrayIntro.mp4', 'thumbnail' => 'StingrayIntro.mp4']
 ];
 
