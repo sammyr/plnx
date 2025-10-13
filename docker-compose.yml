@@ -33,6 +33,11 @@ services:
     networks:
       - default
     labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-http.rule=Host(`stream.sammyrichter.de`)"
+      - "traefik.http.routers.nginx-http.entrypoints=websecure"
+      - "traefik.http.routers.nginx-http.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nginx-http.service=nginx"
       - "traefik.http.services.nginx.loadbalancer.server.port=80"
 
   php-fpm:
