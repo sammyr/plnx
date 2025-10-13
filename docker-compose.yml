@@ -36,7 +36,7 @@ services:
       - "traefik.http.services.nginx-php.loadbalancer.server.port=80"
 
   php-fpm:
-    image: php:7.4-fpm-alpine
+    image: php:8.3-fpm-alpine
     container_name: php-fpm-server
     volumes:
       - ./html:/var/www/html
