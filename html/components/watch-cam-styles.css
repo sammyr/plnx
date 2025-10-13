@@ -115,6 +115,8 @@ video {
 @media (max-width: 1200px) {
     .container {
         flex-direction: column;
+        padding: 30px 20px;
+        gap: 24px;
     }
 
     .sidebar {
@@ -126,6 +128,97 @@ video {
 
 @media (max-width: 768px) {
     .container {
-        padding: 100px 20px 20px;
+        padding: 100px 16px 20px;
+        gap: 20px;
+    }
+    
+    .video-wrapper {
+        border-radius: 12px;
+    }
+    
+    .video-container {
+        min-height: 250px;
+    }
+    
+    /* Video Overlays mobil optimiert */
+    .video-overlay {
+        padding: 12px;
+    }
+    
+    .status-badge {
+        padding: 6px 12px;
+        font-size: 10px;
+    }
+    
+    .status-dot {
+        width: 6px;
+        height: 6px;
+    }
+    
+    /* Title/Location Overlay mobil */
+    .title-location-overlay {
+        top: 12px !important;
+        right: 12px !important;
+        padding: 8px 14px !important;
+        font-size: 11px !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        align-items: flex-end !important;
+        max-width: calc(100% - 24px) !important;
+    }
+    
+    #videoTitleOverlay {
+        font-size: 11px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .location-link {
+        border-left: none !important;
+        padding-left: 0 !important;
+        font-size: 10px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    /* Loading Indicator mobil */
+    #loadingIndicator div:first-child {
+        width: 40px !important;
+        height: 40px !important;
+        border-width: 3px !important;
+    }
+    
+    #loadingIndicator div:last-child {
+        font-size: 12px !important;
+    }
+    
+    /* Booking Confirmation mobil */
+    #bookingConfirmation {
+        padding: 12px 20px !important;
+        font-size: 12px !important;
+        border-radius: 50px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 90px 12px 16px;
+    }
+    
+    .video-container {
+        min-height: 200px;
+        border-radius: 8px;
+    }
+    
+    .video-overlay {
+        padding: 8px;
+    }
+    
+    .status-badge {
+        padding: 5px 10px;
+        font-size: 9px;
     }
 }

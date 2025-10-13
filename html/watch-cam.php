@@ -67,10 +67,10 @@ $pageTitle = $titles[$roomId] ?? 'Premium Stream';
                     </div>
                     
                     <!-- Video Title / Location Overlay -->
-                    <div style="position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(20px); padding: 10px 20px; border-radius: 100px; border: 1px solid rgba(212, 175, 55, 0.3); z-index: 2; display: flex; align-items: center; gap: 12px;">
+                    <div class="title-location-overlay" style="position: absolute; top: 20px; right: 20px; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(20px); padding: 10px 20px; border-radius: 100px; border: 1px solid rgba(212, 175, 55, 0.3); z-index: 2; display: flex; align-items: center; gap: 12px;">
                         <div id="videoTitleOverlay" style="color: #d4af37; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;"><?php echo strtoupper($roomId); ?></div>
                         <?php if ($location): ?>
-                        <a href="<?php echo htmlspecialchars($mapLink); ?>" target="_blank" style="color: rgba(255, 255, 255, 0.7); font-size: 12px; font-weight: 500; border-left: 1px solid rgba(212, 175, 55, 0.3); padding-left: 12px; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.color='#d4af37'" onmouseout="this.style.color='rgba(255, 255, 255, 0.7)'">
+                        <a href="<?php echo htmlspecialchars($mapLink); ?>" target="_blank" class="location-link" style="color: rgba(255, 255, 255, 0.7); font-size: 12px; font-weight: 500; border-left: 1px solid rgba(212, 175, 55, 0.3); padding-left: 12px; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.color='#d4af37'" onmouseout="this.style.color='rgba(255, 255, 255, 0.7)'">
                             📍 <?php echo htmlspecialchars($location); ?>
                         </a>
                         <?php endif; ?>
