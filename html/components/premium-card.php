@@ -66,7 +66,7 @@
                 font-weight: 700;
                 color: #d4af37;
                 margin-bottom: 4px;
-            ">4K</div>
+            ">2K</div>
             <div style="
                 font-size: 12px;
                 color: rgba(255, 255, 255, 0.6);
