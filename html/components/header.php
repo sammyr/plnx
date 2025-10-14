@@ -6,8 +6,9 @@
     </a>
     <div class="nav-right" style="text-transform: uppercase;">
       <a class="navlink" href="viewer.php">Home</a>
-      <a class="navlink"  href="login.php">Mitarbeiter-Login</a>
-      <button id="start-hls-btn" class="navlink" style="cursor:pointer;background:none;border:none;">HLS Start</button>
+      <a class="navlink" href="diagnose.php">Diagnose</a>
+      <a class="navlink" href="login.php">Mitarbeiter-Login</a>
+    
     </div>
   </nav>
 </header>

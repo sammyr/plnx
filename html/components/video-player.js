@@ -196,3 +196,27 @@ video.addEventListener('pause', () => {
     playPauseBtn.textContent = '▶';
     customControls.style.opacity = '1';
 });
+
+// Auto-Unmute nach Mausbewegung (verzögert)
+let autoUnmuteTriggered = false;
+let mouseMoveTimeout;
+
+function handleAutoUnmute() {
+    if (!autoUnmuteTriggered && video.muted && window.audioUnlocked) {
+        clearTimeout(mouseMoveTimeout);
+        mouseMoveTimeout = setTimeout(() => {
+            if (!autoUnmuteTriggered && video.muted) {
+                autoUnmuteTriggered = true;
+                video.muted = false;
+                video.volume = savedVolume ? parseFloat(savedVolume) : 0.5;
+                volumeBar.value = video.volume * 100;
+                updateMuteIcon();
+                console.log('[Auto-Unmute] Ton automatisch aktiviert nach Mausbewegung');
+            }
+        }, 2000); // 2 Sekunden nach letzter Mausbewegung
+    }
+}
+
+// Lausche auf Mausbewegung über dem Video
+videoContainer.addEventListener('mousemove', handleAutoUnmute);
+document.addEventListener('mousemove', handleAutoUnmute);
