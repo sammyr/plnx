@@ -6,9 +6,9 @@
         <div class="footer-section">
             <div class="footer-logo">PLNX</div>
             <p class="footer-brand">
-                Live dabei – überall.<br>
-                Professionelle Streams.<br>
-                Echtzeit-Erlebnisse.
+                Live everywhere.<br>
+                Professional streams.<br>
+                Real-time experiences.
             </p>
         </div>
 
@@ -17,9 +17,9 @@
             <h3>Navigation</h3>
             <ul>
                 <li><a href="viewer.php">Live Streams</a></li>
-                <li><a href="index.html">Startseite</a></li>
-                <li><a href="#archive">Archiv</a></li>
-                <li><a href="#schedule">Programm</a></li>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="#archive">Archive</a></li>
+                <li><a href="#schedule">Schedule</a></li>
             </ul>
         </div>
 
@@ -27,8 +27,8 @@
         <div class="footer-section">
             <h3>Support</h3>
             <ul>
-                <li><a href="#help">Hilfe Center</a></li>
-                <li><a href="#contact">Kontakt</a></li>
+                <li><a href="#help">Help Center</a></li>
+                <li><a href="#contact">Contact</a></li>
                 <li><a href="#faq">FAQ</a></li>
                 <li><a href="#feedback">Feedback</a></li>
             </ul>
@@ -36,11 +36,11 @@
 
         <!-- Legal -->
         <div class="footer-section">
-            <h3>Rechtliches</h3>
+            <h3>Legal</h3>
             <ul>
-                <li><a href="#privacy">Datenschutz</a></li>
-                <li><a href="#terms">AGB</a></li>
-                <li><a href="#imprint">Impressum</a></li>
+                <li><a href="#privacy">Privacy Policy</a></li>
+                <li><a href="#terms">Terms of Service</a></li>
+                <li><a href="#imprint">Imprint</a></li>
                 <li><a href="#cookies">Cookies</a></li>
             </ul>
         </div>
@@ -48,7 +48,7 @@
 
     <!-- Bottom Bar -->
     <div class="footer-bottom">
-        <div>&copy; 2025, Alle Rechte vorbehalten.</div>
+        <div>&copy; 2025, All rights reserved.</div>
         
         <!-- Social Links -->
         <div class="footer-social">

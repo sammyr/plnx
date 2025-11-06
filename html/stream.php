@@ -2,7 +2,7 @@
 // Broadcaster-Seite (PHP-Version)
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,7 +22,7 @@
             <div class="broadcaster-video-container">
                 <video id="localVideo" autoplay muted playsinline></video>
                 <div class="broadcaster-video-overlay">
-                    <div id="statusBadge" class="status-badge"><div class="status-dot"></div><span>Bereit</span></div>
+                    <div id="statusBadge" class="status-badge"><div class="status-dot"></div><span>Ready</span></div>
                     <!-- Location Badge (oben rechts) -->
                     <div class="stats-badge" id="locationBadge" style="display:flex; align-items:center; gap:12px;">
                         <div id="locationRoom" style="color:#d4af37; font-size:13px; font-weight:600; letter-spacing:.5px;">-</div>
@@ -36,16 +36,16 @@
             <div class="broadcaster-controls">
                 <div class="broadcaster-connection-indicator">
                     <div class="broadcaster-connection-dot" id="connectionDot"></div>
-                    <span id="connectionStatus">Nicht verbunden</span>
+                    <span id="connectionStatus">Not connected</span>
                 </div>
 
                 <div class="broadcaster-controls-grid">
                     <div class="broadcaster-form-group">
-                        <label>Kamera</label>
-                        <select id="cameraSelect"><option>Lade Kameras...</option></select>
+                        <label>Camera</label>
+                        <select id="cameraSelect"><option>Loading cameras...</option></select>
                     </div>
                     <div class="broadcaster-form-group">
-                        <label>Qualität</label>
+                        <label>Quality</label>
                         <select id="qualitySelect">
                             <option value="1280x720" selected>HD (1280x720)</option>
                             <option value="1920x1080">Full HD (1920x1080)</option>
@@ -55,18 +55,18 @@
                     </div>
                     <div class="broadcaster-form-group">
                         <label>Room-ID (optional)</label>
-                        <input type="text" id="roomIdInput" placeholder="Automatisch generiert">
+                        <input type="text" id="roomIdInput" placeholder="Auto-generated">
                     </div>
                     <div class="broadcaster-form-group">
-                        <label>Telefonnummer (Erreichbarkeit)</label>
-                        <input type="tel" id="phoneInput" placeholder="z.B. +49 160 1234567">
+                        <label>Phone Number (Availability)</label>
+                        <input type="tel" id="phoneInput" placeholder="e.g. +49 160 1234567">
                     </div>
                 </div>
 
                 <div class="broadcaster-button-group">
-                    <button id="startCameraBtn" class="broadcaster-btn broadcaster-btn-primary"><span>Kamera starten</span></button>
-                    <button id="startBroadcastBtn" class="broadcaster-btn broadcaster-btn-success" disabled><span>Broadcast starten</span></button>
-                    <button id="stopBtn" class="broadcaster-btn broadcaster-btn-danger" disabled><span>Stoppen</span></button>
+                    <button id="startCameraBtn" class="broadcaster-btn broadcaster-btn-primary"><span>Start Camera</span></button>
+                    <button id="startBroadcastBtn" class="broadcaster-btn broadcaster-btn-success" disabled><span>Start Broadcast</span></button>
+                    <button id="stopBtn" class="broadcaster-btn broadcaster-btn-danger" disabled><span>Stop</span></button>
                 </div>
 
                 <div id="roomInfo" style="display:none;">
@@ -106,11 +106,11 @@
         async function getCurrentCity(){try{const r=await fetch('https://ipapi.co/json/',{timeout:3000});const d=await r.json();return d.city||'Berlin'}catch(e){return 'Berlin'}}
         async function getNextStreamNumber(city){try{const protocol=window.location.protocol==='https:'?'https:':'http:';const r=await fetch(`${protocol}//ws.sammyrichter.de/drivers`);const d=await r.json();const nums=d.drivers.map(x=>x.driverId).filter(id=>id.startsWith(`Driver-${city}-`)).map(id=>{const m=id.match(/Driver-.*-(\d+)$/);return m?parseInt(m[1]):0});const max=nums.length>0?Math.max(...nums):0;return max+1}catch(e){return 1}}
 
-        async function loadCameras(){try{const devs=await navigator.mediaDevices.enumerateDevices();const vids=devs.filter(d=>d.kind==='videoinput');cameraSelect.innerHTML='';vids.forEach((device,i)=>{const o=document.createElement('option');o.value=device.deviceId;o.text=device.label||`Kamera ${i+1}`;cameraSelect.appendChild(o)});}catch(e){console.error('Kameras:',e)}}
+        async function loadCameras(){try{const devs=await navigator.mediaDevices.enumerateDevices();const vids=devs.filter(d=>d.kind==='videoinput');cameraSelect.innerHTML='';vids.forEach((device,i)=>{const o=document.createElement('option');o.value=device.deviceId;o.text=device.label||`Camera ${i+1}`;cameraSelect.appendChild(o)});}catch(e){console.error('Kameras:',e)}}
 
-        async function startCamera(){try{const deviceId=cameraSelect.value;const [w,h]=qualitySelect.value.split('x').map(Number);const constraints={video:{deviceId:deviceId?{exact:deviceId}:undefined,width:{ideal:w},height:{ideal:h},frameRate:{ideal:30,max:60}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}};localStream=await navigator.mediaDevices.getUserMedia(constraints);localVideo.srcObject=localStream;startCameraBtn.disabled=true;startBroadcastBtn.disabled=false;cameraSelect.disabled=true;qualitySelect.disabled=true;statusBadge.querySelector('span').textContent='Kamera aktiv';await loadCameras();}catch(e){alert('Fehler beim Kamera-Zugriff');}}
+        async function startCamera(){try{const deviceId=cameraSelect.value;const [w,h]=qualitySelect.value.split('x').map(Number);const constraints={video:{deviceId:deviceId?{exact:deviceId}:undefined,width:{ideal:w},height:{ideal:h},frameRate:{ideal:30,max:60}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}};localStream=await navigator.mediaDevices.getUserMedia(constraints);localVideo.srcObject=localStream;startCameraBtn.disabled=true;startBroadcastBtn.disabled=false;cameraSelect.disabled=true;qualitySelect.disabled=true;statusBadge.querySelector('span').textContent='Camera active';await loadCameras();}catch(e){alert('Error accessing camera');}}
 
-        async function startBroadcast(){try{if(!localStream){alert('Bitte starte zuerst die Kamera!');return}if(!signalingSocket || signalingSocket.readyState !== WebSocket.OPEN){await connectToSignalingServer();}if(!roomIdInput.value.trim()){const city=await getCurrentCity();const n=await getNextStreamNumber(city);roomId=`Driver-${city}-${String(n).padStart(3,'0')}`;}else{roomId=roomIdInput.value.trim();}
+        async function startBroadcast(){try{if(!localStream){alert('Please start the camera first!');return}if(!signalingSocket || signalingSocket.readyState !== WebSocket.OPEN){await connectToSignalingServer();}if(!roomIdInput.value.trim()){const city=await getCurrentCity();const n=await getNextStreamNumber(city);roomId=`Driver-${city}-${String(n).padStart(3,'0')}`;}else{roomId=roomIdInput.value.trim();}
             let gpsCoords=null;try{const pos=await new Promise((res,rej)=>{navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,enableHighAccuracy:true});});gpsCoords={lat:pos.coords.latitude,lon:pos.coords.longitude};}catch(e){}
             // Telefonnummer optional mitsenden (nur Anzeige-/Logzwecke; Server kann erweitert werden)
             const phone = phoneInput && phoneInput.value ? phoneInput.value : null;
@@ -147,7 +147,7 @@
             startTime=Date.now();durationInterval=setInterval(updateDuration,1000);statsInterval=setInterval(updateStats,2000);thumbnailInterval=setInterval(uploadThumbnail,2000); if(!localVideo.srcObject){localVideo.srcObject=localStream;} localVideo.play().catch(()=>{});
         }catch(e){console.error('Broadcast:',e)}}
 
-        function connectToSignalingServer(){return new Promise((resolve,reject)=>{signalingSocket=new WebSocket(SIGNALING_SERVER);signalingSocket.onopen=()=>{connectionDot.classList.add('connected');connectionStatus.textContent='Verbunden mit Server';resolve();};signalingSocket.onmessage=handleSignalingMessage;signalingSocket.onerror=reject;signalingSocket.onclose=()=>{connectionDot.classList.remove('connected');connectionStatus.textContent='Getrennt';};});}
+        function connectToSignalingServer(){return new Promise((resolve,reject)=>{signalingSocket=new WebSocket(SIGNALING_SERVER);signalingSocket.onopen=()=>{connectionDot.classList.add('connected');connectionStatus.textContent='Connected to server';resolve();};signalingSocket.onmessage=handleSignalingMessage;signalingSocket.onerror=reject;signalingSocket.onclose=()=>{connectionDot.classList.remove('connected');connectionStatus.textContent='Disconnected';};});}
         async function handleSignalingMessage(event){const data=JSON.parse(event.data);switch(data.type){case 'viewer-joined':await handleViewerJoined(data.peerId);updateViewerCount();break;case 'viewer-left':handleViewerLeft(data.peerId);updateViewerCount();break;case 'answer':await handleAnswer(data.peerId,data.answer);break;case 'ice-candidate':await handleIceCandidate(data.peerId,data.candidate);break;}}
         async function handleViewerJoined(peerId){const pc=new RTCPeerConnection({iceServers:ICE_SERVERS});peerConnections.set(peerId,pc);localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.onicecandidate=(e)=>{if(e.candidate){signalingSocket.send(JSON.stringify({type:'ice-candidate',roomId,candidate:e.candidate,peerId}));}};const offer=await pc.createOffer();await pc.setLocalDescription(offer);signalingSocket.send(JSON.stringify({type:'offer',roomId,offer,peerId}));}
         async function handleAnswer(peerId,answer){const pc=peerConnections.get(peerId);if(pc){await pc.setRemoteDescription(new RTCSessionDescription(answer));}}
@@ -164,7 +164,7 @@
         });
         startCameraBtn.addEventListener('click', startCamera);
         startBroadcastBtn.addEventListener('click', startBroadcast);
-        stopBtn.addEventListener('click', ()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}peerConnections.forEach(pc=>pc.close());peerConnections.clear();if(signalingSocket){signalingSocket.close();signalingSocket=null;}if(thumbnailInterval)clearInterval(thumbnailInterval);localVideo.srcObject=null;isBroadcasting=false;startCameraBtn.disabled=false;startBroadcastBtn.disabled=true;stopBtn.disabled=true;cameraSelect.disabled=false;qualitySelect.disabled=false;roomIdInput.disabled=false;statusBadge.classList.remove('live');statusBadge.querySelector('span').textContent='Gestoppt';statsBadge.style.display='none';roomInfo.style.display='none';connectionDot.classList.remove('connected');connectionStatus.textContent='Nicht verbunden';});
+        stopBtn.addEventListener('click', ()=>{if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}peerConnections.forEach(pc=>pc.close());peerConnections.clear();if(signalingSocket){signalingSocket.close();signalingSocket=null;}if(thumbnailInterval)clearInterval(thumbnailInterval);localVideo.srcObject=null;isBroadcasting=false;startCameraBtn.disabled=false;startBroadcastBtn.disabled=true;stopBtn.disabled=true;cameraSelect.disabled=false;qualitySelect.disabled=false;roomIdInput.disabled=false;statusBadge.classList.remove('live');statusBadge.querySelector('span').textContent='Stopped';statsBadge.style.display='none';roomInfo.style.display='none';connectionDot.classList.remove('connected');connectionStatus.textContent='Not connected';});
     </script>
 </body>
 </html>

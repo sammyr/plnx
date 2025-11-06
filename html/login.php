@@ -51,20 +51,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="page-wrapper">
         <div class="content-wrapper">
             <form class="card" method="post">
-        <h1>Mitarbeiter-Login</h1>
-        <p>Bitte melde dich an, um zu Broadcasten.</p>
+        <h1>Staff Login</h1>
+        <p>Please log in to broadcast.</p>
         <div class="field">
-            <label for="username">Benutzername</label>
+            <label for="username">Username</label>
             <input id="username" name="username" autocomplete="username" required>
         </div>
         <div class="field">
-            <label for="password">Passwort</label>
+            <label for="password">Password</label>
             <input id="password" type="password" name="password" autocomplete="current-password" required>
         </div>
-        <button class="btn" type="submit">Anmelden</button>
+        <button class="btn" type="submit">Sign In</button>
         <div class="links">
-            <a href="viewer.php">Zurück</a>
-            <a href="#">Passwort vergessen?</a>
+            <a href="viewer.php">Back</a>
+            <a href="#">Forgot password?</a>
         </div>
             </form>
         </div>

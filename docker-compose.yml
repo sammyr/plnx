@@ -24,8 +24,8 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     container_name: nginx-webserver
-    expose:
-      - "80"
+    ports:
+      - "80:80"   # Für lokale Entwicklung
     volumes:
       - ./html:/var/www/html
     depends_on:
@@ -54,8 +54,8 @@ services:
     image: node:18-alpine
     container_name: webrtc-signaling-server
     working_dir: /app
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"   # WebSocket für lokale Entwicklung
     volumes:
       - ./signaling-server:/app
       - ./html/videos:/videos:ro

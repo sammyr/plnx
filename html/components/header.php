@@ -5,9 +5,9 @@
       <?php include __DIR__ . '/logo.php'; ?>
     </a>
     <div class="nav-right" style="text-transform: uppercase;">
-      <a class="navlink" href="viewer.php">Home</a>
-      <a class="navlink" href="diagnose.php">Diagnose</a>
-      <a class="navlink" href="login.php">Mitarbeiter-Login</a>
+      <a class="navlink" href="viewer.php">Home</a><a class="navlink" href="login.php">Staff Login</a>
+      <a class="navlink" href="diagnose.php">Diagnostics</a>
+      
     
     </div>
   </nav>

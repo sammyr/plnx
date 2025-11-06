@@ -1,6 +1,8 @@
 // WebRTC Logic for watch-cam.php
 let peerConnection = null;
 let signalingSocket = null;
+let localAudioStream = null;
+let isMicEnabled = false;
 const roomId = new URLSearchParams(window.location.search).get('room') || 'Driver-Berlin-001';
 
 console.log('Starte WebRTC-Stream für Raum:', roomId);
@@ -57,6 +59,17 @@ function connectSignaling() {
     };
 }
 
+// Erstelle einen stummen Audio-Track als Platzhalter
+function createSilentAudioTrack() {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const dst = oscillator.connect(ctx.createMediaStreamDestination());
+    oscillator.start();
+    const track = dst.stream.getAudioTracks()[0];
+    track.enabled = false;
+    return track;
+}
+
 // Initialisiere WebRTC
 async function initWebRTC() {
     try {
@@ -66,6 +79,11 @@ async function initWebRTC() {
                 { urls: 'stun:stun1.l.google.com:19302' }
             ]
         });
+        
+        // Füge leeren Audio-Track hinzu (wird später aktiviert wenn Chat startet)
+        // Dies ermöglicht bidirektionale Audio-Kommunikation
+        const silentAudioTrack = createSilentAudioTrack();
+        peerConnection.addTrack(silentAudioTrack, new MediaStream());
         
         peerConnection.ontrack = (event) => {
             console.log('WebRTC-Stream empfangen!', event.streams[0]);
@@ -179,6 +197,182 @@ function showPlayButton() {
         loadingIndicator.style.display = 'block';
     }
 }
+
+// Aktiviere Mikrofon für bidirektionale Kommunikation
+async function enableMicrophone() {
+    try {
+        console.log('[Mikrofon] 🎤 Aktiviere Mikrofon...');
+        console.log('[Mikrofon] PeerConnection Status:', peerConnection ? 'Vorhanden' : 'Fehlt');
+        
+        // Zeige Lade-Indikator im Chat
+        showMicrophoneStatus('Mikrofon wird aktiviert...', 'loading');
+        
+        // Hole Mikrofon-Zugriff
+        console.log('[Mikrofon] Fordere Mikrofon-Berechtigung an...');
+        localAudioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        });
+        
+        console.log('[Mikrofon] ✅ Mikrofon-Zugriff erhalten');
+        console.log('[Mikrofon] Audio Tracks:', localAudioStream.getAudioTracks().length);
+        
+        // Ersetze den stummen Track mit echtem Mikrofon
+        const audioTrack = localAudioStream.getAudioTracks()[0];
+        console.log('[Mikrofon] Audio Track:', audioTrack.label, 'Enabled:', audioTrack.enabled);
+        
+        const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+        
+        if (sender) {
+            await sender.replaceTrack(audioTrack);
+            console.log('[Mikrofon] ✅ Audio-Track ersetzt');
+        } else {
+            peerConnection.addTrack(audioTrack, localAudioStream);
+            console.log('[Mikrofon] ✅ Audio-Track hinzugefügt');
+        }
+        
+        isMicEnabled = true;
+        updateMicrophoneUI();
+        showMicrophoneStatus('Mikrofon aktiv', 'success');
+        
+        console.log('[Mikrofon] 🎉 Mikrofon erfolgreich aktiviert!');
+        return true;
+    } catch (error) {
+        console.error('[Mikrofon] ❌ Fehler beim Aktivieren:', error);
+        console.error('[Mikrofon] Fehler-Details:', error.name, error.message);
+        
+        let errorMsg = 'Mikrofon-Zugriff fehlgeschlagen.';
+        if (error.name === 'NotAllowedError') {
+            errorMsg = 'Mikrofon-Berechtigung verweigert. Bitte erlaube den Zugriff in deinem Browser.';
+        } else if (error.name === 'NotFoundError') {
+            errorMsg = 'Kein Mikrofon gefunden. Bitte schließe ein Mikrofon an.';
+        }
+        
+        showMicrophoneStatus(errorMsg, 'error');
+        alert(errorMsg);
+        return false;
+    }
+}
+
+// Zeige Mikrofon-Status im Chat
+function showMicrophoneStatus(message, type) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        const statusEl = document.createElement('div');
+        statusEl.style.cssText = 'text-align: center; margin: 12px 0; font-size: 12px;';
+        
+        let bgColor, borderColor, icon;
+        if (type === 'loading') {
+            bgColor = 'rgba(212, 175, 55, 0.1)';
+            borderColor = 'rgba(212, 175, 55, 0.2)';
+            icon = '⏳';
+        } else if (type === 'success') {
+            bgColor = 'rgba(16, 185, 129, 0.1)';
+            borderColor = 'rgba(16, 185, 129, 0.2)';
+            icon = '✅';
+        } else {
+            bgColor = 'rgba(239, 68, 68, 0.1)';
+            borderColor = 'rgba(239, 68, 68, 0.2)';
+            icon = '❌';
+        }
+        
+        statusEl.innerHTML = `
+            <div style="background: ${bgColor}; padding: 10px; border-radius: 10px; border: 1px solid ${borderColor}; color: rgba(255, 255, 255, 0.8);">
+                ${icon} ${message}
+            </div>
+        `;
+        chatMessages.appendChild(statusEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+// Deaktiviere Mikrofon
+function disableMicrophone() {
+    if (localAudioStream) {
+        localAudioStream.getTracks().forEach(track => track.stop());
+        localAudioStream = null;
+    }
+    
+    // Ersetze mit stummem Track
+    const silentTrack = createSilentAudioTrack();
+    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
+    if (sender) {
+        sender.replaceTrack(silentTrack);
+    }
+    
+    isMicEnabled = false;
+    updateMicrophoneUI();
+    console.log('[Mikrofon] Mikrofon deaktiviert');
+}
+
+// Toggle Mikrofon
+function toggleMicrophone() {
+    if (isMicEnabled) {
+        disableMicrophone();
+    } else {
+        enableMicrophone();
+    }
+}
+
+// Aktualisiere Mikrofon-UI - Dezent
+function updateMicrophoneUI() {
+    const micButton = document.getElementById('micToggleBtn');
+    const micIconSvg = document.getElementById('micIconSvg');
+    const micStatus = document.getElementById('micStatus');
+    const micMuteLine = document.getElementById('micMuteLine');
+    
+    if (micButton && micIconSvg && micStatus) {
+        if (isMicEnabled) {
+            // Mikrofon aktiv - Dezentes Grün
+            micButton.style.background = 'rgba(16, 185, 129, 0.12)';
+            micButton.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+            micStatus.textContent = 'Mikrofon aktiv';
+            
+            // Verstecke Mute-Linie
+            if (micMuteLine) {
+                micMuteLine.style.display = 'none';
+            }
+            
+            // Ändere Icon-Farbe zu Grün
+            const paths = micIconSvg.querySelectorAll('path, line');
+            paths.forEach(path => {
+                if (path.id !== 'micMuteLine') {
+                    path.style.stroke = 'rgba(16, 185, 129, 0.9)';
+                }
+            });
+            
+            // Icon-Opacity
+            micIconSvg.style.opacity = '1';
+        } else {
+            // Mikrofon aus - Dezentes Rot
+            micButton.style.background = 'rgba(239, 68, 68, 0.08)';
+            micButton.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+            micStatus.textContent = 'Mikrofon aus';
+            
+            // Zeige Mute-Linie
+            if (micMuteLine) {
+                micMuteLine.style.display = 'block';
+            }
+            
+            // Ändere Icon-Farbe zu Weiß
+            const paths = micIconSvg.querySelectorAll('path, line');
+            paths.forEach(path => {
+                path.style.stroke = 'currentColor';
+            });
+            
+            // Icon-Opacity
+            micIconSvg.style.opacity = '0.8';
+        }
+    }
+}
+
+// Exportiere Funktionen für Chat-Integration
+window.enableViewerMicrophone = enableMicrophone;
+window.disableViewerMicrophone = disableMicrophone;
+window.toggleViewerMicrophone = toggleMicrophone;
 
 // Starte WebRTC
 initWebRTC();

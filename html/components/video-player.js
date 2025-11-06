@@ -202,7 +202,8 @@ let autoUnmuteTriggered = false;
 let mouseMoveTimeout;
 
 function handleAutoUnmute() {
-    if (!autoUnmuteTriggered && video.muted && window.audioUnlocked) {
+    // Prüfe ob Video stumm ist (unabhängig von audioUnlocked)
+    if (!autoUnmuteTriggered && video.muted) {
         clearTimeout(mouseMoveTimeout);
         mouseMoveTimeout = setTimeout(() => {
             if (!autoUnmuteTriggered && video.muted) {
@@ -213,7 +214,7 @@ function handleAutoUnmute() {
                 updateMuteIcon();
                 console.log('[Auto-Unmute] Ton automatisch aktiviert nach Mausbewegung');
             }
-        }, 2000); // 2 Sekunden nach letzter Mausbewegung
+        }, 1500); // 1.5 Sekunden nach letzter Mausbewegung
     }
 }
 

@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Apache mit PHP (Stabil & Einfach)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.apache
+    container_name: plnx-apache
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/var/www/html
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - plnx-network
+
+  # WebRTC Signaling Server
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile.websocket
+    container_name: plnx-websocket
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - ./html/data:/app/data
+    networks:
+      - plnx-network
+
+  # SRS Media Server
+  srs:
+    image: ossrs/srs:5
+    container_name: plnx-srs
+    restart: always
+    ports:
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
+    volumes:
+      - ./srs.conf:/usr/local/srs/conf/srs.conf
+    networks:
+      - plnx-network
+
+networks:
+  plnx-network:
+    driver: bridge

@@ -2,10 +2,108 @@
 // Video-Konfiguration (serverseitig) - Aktualisiert 2025-10-13
 // Nur 3 Videos: Die Totale Erinnerung, Horrible Boss, Stingray
 $demoVideos = [
-    ['id' => 'demo_video_stream', 'title' => 'Die Totale Erinnerung', 'file' => 'ttr.m4v', 'thumbnail' => 'ttr_preview.mp4'],
-    ['id' => 'demo_horrible_boss_stream', 'title' => 'Horrible Boss', 'file' => 'Horrible-Boss.m4v', 'thumbnail' => 'Horrible-Boss.m4v'],
-    ['id' => 'demo_stingray_stream', 'title' => 'Stingray - Intro', 'file' => 'StingrayIntro.mp4', 'thumbnail' => 'StingrayIntro.mp4']
+    ['id' => 'demo_video_stream', 'title' => 'Die Totale Erinnerung', 'file' => 'ttr.m4v', 'preview' => 'ttr_preview.mp4', 'poster' => 'ttr.jpg'],
+    ['id' => 'demo_horrible_boss_stream', 'title' => 'Horrible Boss', 'file' => 'Horrible-Boss.m4v', 'preview' => 'Horrible-Boss_preview.mp4', 'poster' => 'horrible.jpg'],
+    ['id' => 'demo_stingray_stream', 'title' => 'Stingray - Intro', 'file' => 'StingrayIntro.mp4', 'preview' => 'StingrayIntro_preview.mp4', 'poster' => 'stingray.jpg']
 ];
+
+// Automatische Poster-Generierung (im Hintergrund)
+function generateMissingPosters() {
+    $videoDir = __DIR__ . '/videos';
+    $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+    
+    // Finde FFmpeg (Windows & Linux)
+    $ffmpeg = null;
+    if ($isWindows) {
+        // Windows: Prüfe verschiedene Pfade
+        $windowsPaths = [
+            'C:\\ffmpeg\\bin\\ffmpeg.exe',
+            'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+            'ffmpeg.exe' // Im PATH
+        ];
+        foreach ($windowsPaths as $path) {
+            if (file_exists($path) || $path === 'ffmpeg.exe') {
+                $ffmpeg = $path;
+                break;
+            }
+        }
+        // Versuche ffmpeg im PATH
+        if (!$ffmpeg) {
+            exec('where ffmpeg 2>nul', $output, $code);
+            if ($code === 0 && !empty($output[0])) {
+                $ffmpeg = trim($output[0]);
+            }
+        }
+    } else {
+        // Linux/Unix
+        $linuxPaths = ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/snap/bin/ffmpeg'];
+        foreach ($linuxPaths as $path) {
+            if (file_exists($path)) {
+                $ffmpeg = $path;
+                break;
+            }
+        }
+        // Versuche which
+        if (!$ffmpeg) {
+            exec('which ffmpeg 2>/dev/null', $output, $code);
+            if ($code === 0 && !empty($output[0])) {
+                $ffmpeg = trim($output[0]);
+            }
+        }
+    }
+    
+    if (!$ffmpeg) {
+        error_log('[Poster-Generator] FFmpeg nicht gefunden');
+        return;
+    }
+    
+    // Prüfe alle Videos
+    global $demoVideos;
+    foreach ($demoVideos as $video) {
+        $sourcePath = "$videoDir/{$video['file']}";
+        $posterPath = "$videoDir/{$video['poster']}";
+        
+        // Überspringe wenn Poster existiert
+        if (file_exists($posterPath)) {
+            error_log("[Poster-Generator] Poster existiert bereits: {$video['poster']}");
+            continue;
+        }
+        
+        // Überspringe wenn Quellvideo nicht existiert
+        if (!file_exists($sourcePath)) {
+            error_log("[Poster-Generator] Video nicht gefunden: {$video['file']}");
+            continue;
+        }
+        
+        error_log("[Poster-Generator] Generiere Poster für: {$video['file']}");
+        
+        // Generiere Poster bei Sekunde 10 (synchron, mit -update Option)
+        $command = sprintf(
+            '%s -ss 00:00:10 -i %s -vframes 1 -update 1 -q:v 2 -vf "scale=1280:-1" %s 2>&1',
+            escapeshellarg($ffmpeg),
+            escapeshellarg($sourcePath),
+            escapeshellarg($posterPath)
+        );
+        
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+        
+        if ($returnCode === 0 && file_exists($posterPath)) {
+            error_log("[Poster-Generator] ✅ Erfolgreich erstellt: {$video['poster']}");
+        } else {
+            error_log("[Poster-Generator] ❌ Fehler beim Erstellen. Return Code: $returnCode");
+            error_log("[Poster-Generator] Befehl: $command");
+            error_log("[Poster-Generator] Output: " . implode("\n", $output));
+        }
+    }
+}
+
+// Führe Poster-Generierung aus (nur wenn nicht API-Call)
+// DEAKTIVIERT - Verursacht Container-Abstürze
+// if (!isset($_GET['api'])) {
+//     generateMissingPosters();
+// }
 
 // API-Endpunkt für Video-Liste
 if (isset($_GET['api']) && $_GET['api'] === 'videos') {
@@ -36,9 +134,21 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                 <?php foreach ($demoVideos as $index => $video): ?>
                 <div class="stream-card">
                     <a href="watch-movie.php?room=<?php echo urlencode($video['id']); ?>" style="text-decoration: none; color: inherit; display: block; width: 100%; height: 100%;">
-                        <div class="stream-thumbnail" style="position: relative; overflow: hidden;">
-                            <video class="thumbnail-video" autoplay muted loop playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; pointer-events: none;">
-                                <source src="videos/<?php echo htmlspecialchars($video['thumbnail']); ?>" type="video/mp4">
+                        <div class="stream-thumbnail" style="position: relative; overflow: hidden; background: #1a1a24;">
+                            <!-- Poster-Bild (immer sichtbar) -->
+                            <img class="thumbnail-poster" 
+                                 src="videos/<?php echo htmlspecialchars($video['poster']); ?>"
+                                 alt="<?php echo htmlspecialchars($video['title']); ?>"
+                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; transition: opacity 0.3s;"
+                                 onerror="this.style.display='none';">
+                            <!-- 10-Sekunden Vorschau-Video (lädt erst bei Hover) -->
+                            <video class="thumbnail-video" 
+                                   muted 
+                                   loop 
+                                   playsinline 
+                                   preload="none"
+                                   data-src="videos/<?php echo htmlspecialchars($video['preview']); ?>"
+                                   style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.3s;">
                             </video>
                             <!-- Kein LIVE-Badge für Demo-Videos -->
                         </div>
@@ -50,7 +160,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
-                                    <span>0 Zuschauer</span>
+                                    <span>0 Viewers</span>
                                 </div>
                             </div>
                         </div>
@@ -61,8 +171,8 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
 
             <div id="emptyState" class="empty-state" style="display: none;">
                 <div class="empty-icon">📡</div>
-                <h3>Keine aktiven Streams</h3>
-                <p>Warte auf Broadcasts...</p>
+                <h3>No Active Streams</h3>
+                <p>Waiting for broadcasts...</p>
             </div>
         </div>
     </div>
@@ -71,12 +181,12 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
     <div id="streamView" class="stream-view">
         <div class="stream-header">
             <div class="stream-room-id" id="currentRoomId">-</div>
-            <button class="btn-back" onclick="backToOverview()">← Zurück</button>
+            <button class="btn-back" onclick="backToOverview()">← Back</button>
         </div>
         <div class="stream-player">
             <video id="remoteVideo" playsinline controls preload="auto"></video>
             <div class="player-overlay">
-                <div id="playerBadge" class="player-badge">Verbinde...</div>
+                <div id="playerBadge" class="player-badge">Connecting...</div>
             </div>
             <div id="manualPlayBtn" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
                 <button onclick="document.getElementById('remoteVideo').play()" style="padding: 20px 40px; font-size: 20px; background: #6366f1; color: white; border: none; border-radius: 12px; cursor: pointer;">
@@ -89,14 +199,14 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
     <!-- Popover -->
     <div id="popoverOverlay" class="popover-overlay">
         <div class="popover">
-            <h2>Stream beitreten</h2>
-            <p class="popover-subtitle">Möchtest du diesem Stream beitreten?</p>
+            <h2>Join Stream</h2>
+            <p class="popover-subtitle">Do you want to join this stream?</p>
             <div class="popover-room">
                 <div class="popover-room-id" id="popoverRoomId">-</div>
             </div>
             <div class="popover-buttons">
-                <button class="btn btn-secondary" onclick="closePopover()">Abbrechen</button>
-                <button class="btn btn-primary" onclick="joinStream()">Beitreten</button>
+                <button class="btn btn-secondary" onclick="closePopover()">Cancel</button>
+                <button class="btn btn-primary" onclick="joinStream()">Join</button>
             </div>
         </div>
     </div>
@@ -124,6 +234,42 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             await connectToSignalingServer();
             loadStreams();
             setInterval(loadStreams, 3000);
+            initThumbnailHover();
+        }
+        
+        // Hover-Effekt für Thumbnails: Lade und spiele 10s Vorschau-Video bei Hover
+        function initThumbnailHover() {
+            document.querySelectorAll('.stream-card').forEach(card => {
+                const video = card.querySelector('.thumbnail-video');
+                const poster = card.querySelector('.thumbnail-poster');
+                
+                if (!video) return;
+                
+                let isLoaded = false;
+                
+                card.addEventListener('mouseenter', () => {
+                    if (!isLoaded && video.dataset.src) {
+                        // Lade Video
+                        video.src = video.dataset.src;
+                        video.load();
+                        isLoaded = true;
+                    }
+                    
+                    // Spiele 10s Vorschau ab und blende Poster aus
+                    video.play().then(() => {
+                        video.style.opacity = '1';
+                        if (poster) poster.style.opacity = '0';
+                    }).catch(() => {});
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    // Pausiere Video, zeige Poster wieder
+                    video.pause();
+                    video.currentTime = 0;
+                    video.style.opacity = '0';
+                    if (poster) poster.style.opacity = '1';
+                });
+            });
         }
 
         function connectToSignalingServer() {
@@ -211,7 +357,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                 return { src: '/videos/Chuck.und.Larry.m4v', type: 'video/mp4', isVideo: true };
             }
             // Live-Räume: Screenshot-Thumbnail (JPG, aktualisiert alle 1 Sekunde)
-            return { src: `/thumbnails/${roomId}.jpg?t=${Date.now()}`, type: 'image/jpeg', isVideo: false };
+            return { src: `/data/thumbnails/${roomId}.jpg?t=${Date.now()}`, type: 'image/jpeg', isVideo: false };
         }
 
         function createThumbnailVideo(roomId) {
@@ -281,7 +427,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
 
                 // Fallback: Haupt-JPG zuerst versuchen, dann _1
                 const tryPrimary = () => {
-                    const primary = `/thumbnails/${roomId}.jpg?t=${Date.now()}`;
+                    const primary = `/data/thumbnails/${roomId}.jpg?t=${Date.now()}`;
                     imgEl.src = primary;
                 };
 
@@ -289,7 +435,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                     // Primärbild fehlgeschlagen: versuche _1
                     if (!imgEl.dataset.fallbackTried) {
                         imgEl.dataset.fallbackTried = '1';
-                        imgEl.src = `/thumbnails/${roomId}_1.jpg?t=${Date.now()}`;
+                        imgEl.src = `/data/thumbnails/${roomId}_1.jpg?t=${Date.now()}`;
                         return;
                     }
                     // Auch _1 fehlgeschlagen: Bild ausblenden, Placeholder sichtbar lassen
@@ -306,7 +452,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                         const headPromises = [];
                         for (let i = 1; i <= maxSlides; i++) {
                             headPromises.push(
-                                fetch(`/thumbnails/${roomId}_${i}.jpg`, { method: 'HEAD' })
+                                fetch(`/data/thumbnails/${roomId}_${i}.jpg`, { method: 'HEAD' })
                                     .then(res => (res.ok ? 1 : 0))
                                     .catch(() => 0)
                             );
@@ -332,7 +478,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                         // Falls Anzahl sich später ändert, modulo begrenzen
                         if (availableSlides <= 1) return;
                         currentSlide = (currentSlide % availableSlides) + 1;
-                        imgEl.src = `/thumbnails/${roomId}_${currentSlide}.jpg?t=${Date.now()}`;
+                        imgEl.src = `/data/thumbnails/${roomId}_${currentSlide}.jpg?t=${Date.now()}`;
                     }, 1000);
                 };
 
@@ -570,7 +716,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
                 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
                 : `${pad(minutes)}:${pad(seconds)}`;
 
-            return `Online seit: ${timeString}`;
+            return `Online: ${timeString}`;
         }
         
         let lastRoomsJson = '';
@@ -599,8 +745,16 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             console.log('[displayRooms] Räume haben sich geändert, neu initialisieren');
             console.log('[displayRooms] Anzahl Räume:', rooms.length);
             console.log('[displayRooms] Räume:', rooms);
-            // Demo-Videos sind bereits in PHP gerendert, nicht löschen!
-            // Nur Live-Streams dynamisch hinzufügen
+            
+            // Lösche nur dynamisch hinzugefügte Live-Stream-Karten (nicht die PHP-Demo-Videos)
+            const existingCards = streamsGrid.querySelectorAll('.stream-card');
+            existingCards.forEach(card => {
+                // Prüfe ob es eine dynamisch hinzugefügte Karte ist (hat Video-Element mit ID preview_*)
+                const previewVideo = card.querySelector('[id^="preview_"]');
+                if (previewVideo) {
+                    card.remove();
+                }
+            });
 
             // WebRTC Streams hinzufügen
             if (rooms.length > 0) {
@@ -907,7 +1061,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             // Zeige Play-Button falls Autoplay blockiert wird
             document.getElementById('manualPlayBtn').style.display = 'block';
             
-            // Warte auf Metadaten
+            // Wait for metadata
             remoteVideo.onloadedmetadata = () => {
                 console.log('Video-Metadaten geladen');
                 remoteVideo.play().then(() => {
@@ -1103,7 +1257,7 @@ if (isset($_GET['api']) && $_GET['api'] === 'videos') {
             streamsOverview.style.display = 'block';
 
             // Badge zurücksetzen
-            document.getElementById('playerBadge').textContent = 'Verbinde...';
+            document.getElementById('playerBadge').textContent = 'Connecting...';
             document.getElementById('playerBadge').classList.remove('live');
 
             loadStreams();

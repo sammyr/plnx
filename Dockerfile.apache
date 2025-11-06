@@ -1,0 +1,27 @@
+FROM php:8.2-apache
+
+# Installiere notwendige Extensions
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Aktiviere Apache Module
+RUN a2enmod rewrite headers expires
+
+# Kopiere PHP Konfiguration
+COPY php-custom.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Setze Berechtigungen
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
+
+# Exponiere Port 80
+EXPOSE 80
+
+# Starte Apache
+CMD ["apache2-foreground"]

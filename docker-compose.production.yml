@@ -1,0 +1,114 @@
+# Docker Compose für Ubuntu Server mit Traefik
+# Verwendung: docker-compose -f docker-compose.production.yml up -d
+#
+# Voraussetzungen auf dem Ubuntu Server:
+# - Traefik als Reverse Proxy läuft bereits
+# - Traefik ist im gleichen Docker-Netzwerk (oder externes Netzwerk konfiguriert)
+# - DNS-Einträge für stream.sammyrichter.de und ws.sammyrichter.de zeigen auf den Server
+
+services:
+  srs:
+    image: ossrs/srs:5
+    container_name: srs-streaming-server
+    expose:
+      - "8080"
+    ports:
+      - "1935:1935"   # RTMP Port (extern erreichbar)
+      - "1985:1985"   # HTTP API Port (extern erreichbar)
+    volumes:
+      - ./srs:/usr/local/srs/conf
+      - ./html:/usr/local/srs/objs/nginx/html
+    command: ["./objs/srs", "-c", "conf/srs.conf"]
+    restart: unless-stopped
+    environment:
+      - CANDIDATE=0.0.0.0
+    networks:
+      - default
+    labels:
+      - "traefik.http.services.srs.loadbalancer.server.port=8080"
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-webserver
+    expose:
+      - "80"   # Nur intern, Traefik routet von außen
+    volumes:
+      - ./html:/var/www/html
+    depends_on:
+      - php-fpm
+    restart: unless-stopped
+    networks:
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`stream.sammyrichter.de`)"
+      - "traefik.http.routers.nginx.entrypoints=https"
+      - "traefik.http.routers.nginx.tls=true"
+      - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+
+  php-fpm:
+    image: php:8.3-fpm-alpine
+    container_name: php-fpm-server
+    volumes:
+      - ./html:/var/www/html
+    restart: unless-stopped
+    networks:
+      - default
+
+  webrtc-signaling:
+    image: node:18-alpine
+    container_name: webrtc-signaling-server
+    working_dir: /app
+    expose:
+      - "3000"   # Nur intern, Traefik routet von außen
+    volumes:
+      - ./signaling-server:/app
+      - ./html/videos:/videos:ro
+    command: sh -c "apk add --no-cache ffmpeg && npm install && npm start"
+    restart: unless-stopped
+    networks:
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webrtc.rule=Host(`ws.sammyrichter.de`)"
+      - "traefik.http.routers.webrtc.entrypoints=https"
+      - "traefik.http.routers.webrtc.tls=true"
+      - "traefik.http.routers.webrtc.tls.certresolver=letsencrypt"
+      - "traefik.http.services.webrtc-signaling.loadbalancer.server.port=3000"
+
+  auto-hls:
+    image: jrottenberg/ffmpeg:4.4-alpine
+    container_name: auto-hls-streams
+    volumes:
+      - ./html/videos:/videos:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "🎬 Starting HLS streams..."
+        sleep 5
+        start_stream() {
+            FILE="$$1"
+            ROOM="$$2"
+            echo "▶️  Starting: $$ROOM ($$FILE)"
+            ffmpeg -re -stream_loop -1 -i "/videos/$$FILE" \
+                -c copy \
+                -f flv "rtmp://srs:1935/live/$$ROOM" > /dev/null 2>&1 &
+            echo "   PID: $$!"
+        }
+        start_stream "ttr.m4v" "demo_video_stream"
+        start_stream "Horrible-Boss.m4v" "demo_horrible_boss_stream"
+        start_stream "StingrayIntro.mp4" "demo_stingray_stream"
+        echo "✅ All HLS streams started"
+        ps | grep ffmpeg | grep -v grep
+        echo "⏳ Keeping container alive..."
+        wait
+        while true; do sleep 3600; done
+    restart: unless-stopped
+    depends_on:
+      - srs
+    networks:
+      - default

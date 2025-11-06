@@ -466,7 +466,7 @@ $gpsLon = $_GET['lon'] ?? '';
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 19l-7-7 7-7"/>
                         </svg>
-                        Zurück
+                        Back
                     </a>
                     
                     <!-- Buchungsbestätigung Overlay -->
@@ -664,7 +664,7 @@ $gpsLon = $_GET['lon'] ?? '';
                                 color: #d4af37;
                                 margin-bottom: 8px;
                                 letter-spacing: 1px;
-                            ">Lädt Video...</div>
+                            ">Loading video...</div>
                             
                             <div id="loadingProgress" style="
                                 font-size: 14px;
@@ -848,6 +848,9 @@ $gpsLon = $_GET['lon'] ?? '';
             return `${mbps} Mbps`;
         }
 
+        // Speichere die ursprüngliche Video-Dauer fest (für HLS-Streams)
+        let fixedDuration = null;
+
         // Initialisierung je nach Stream-Typ starten
         if (isWebRTCStream) {
             console.log('Starte WebRTC-Stream für Raum:', roomId);
@@ -944,9 +947,16 @@ $gpsLon = $_GET['lon'] ?? '';
             video.onloadstart = () => {
                 console.log('Video lädt...');
             };
-
+            
             video.onloadedmetadata = () => {
                 console.log('Video-Metadaten geladen, Dauer:', video.duration, 'Größe:', video.videoWidth, 'x', video.videoHeight);
+                
+                // Speichere die Dauer beim ersten Laden (nur wenn gültig)
+                if (!fixedDuration && video.duration && isFinite(video.duration) && video.duration > 0) {
+                    fixedDuration = video.duration;
+                    console.log('Feste Dauer gespeichert:', fixedDuration);
+                }
+                
                 updateVideoDuration();
                 updateVideoSize();
             };
@@ -1372,18 +1382,9 @@ $gpsLon = $_GET['lon'] ?? '';
             }
         }
 
-        // Volume Control
-        volumeBar.addEventListener('input', (e) => {
-            const newVolume = e.target.value / 100;
-            video.volume = newVolume;
-            video.muted = e.target.value == 0;
-            
-            // Speichere Lautstärke in localStorage
-            localStorage.setItem('plnx_volume', newVolume);
-            console.log('Lautstärke gespeichert:', Math.round(newVolume * 100) + '%');
-            
-            // Update Icon
-            if (video.muted || e.target.value == 0) {
+        // Update Volume UI (Icon und Slider)
+        function updateVolumeUI() {
+            if (video.muted || video.volume === 0) {
                 muteBtn.innerHTML = `
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1400,6 +1401,21 @@ $gpsLon = $_GET['lon'] ?? '';
                     </svg>
                 `;
             }
+            volumeBar.value = video.volume * 100;
+        }
+
+        // Volume Control
+        volumeBar.addEventListener('input', (e) => {
+            const newVolume = e.target.value / 100;
+            video.volume = newVolume;
+            video.muted = e.target.value == 0;
+            
+            // Speichere Lautstärke in localStorage
+            localStorage.setItem('plnx_volume', newVolume);
+            console.log('Lautstärke gespeichert:', Math.round(newVolume * 100) + '%');
+            
+            // Update UI
+            updateVolumeUI();
         });
 
         // Update Play/Pause Button when video state changes
@@ -1411,15 +1427,25 @@ $gpsLon = $_GET['lon'] ?? '';
             playPauseBtn.textContent = '▶';
         });
 
-        // Progress Bar
+        // Progress Bar - Update Zeit und Fortschritt
+        let lastLoggedTime = 0;
         video.addEventListener('timeupdate', () => {
-            if (video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
-                const progress = (video.currentTime / video.duration) * 100;
+            // Debug: Logge Zeit alle 5 Sekunden
+            if (Math.floor(video.currentTime) % 5 === 0 && Math.floor(video.currentTime) !== lastLoggedTime) {
+                console.log(`[TimeUpdate] Current: ${video.currentTime.toFixed(2)}s / Duration: ${video.duration.toFixed(2)}s / Fixed: ${fixedDuration ? fixedDuration.toFixed(2) : 'N/A'}s`);
+                lastLoggedTime = Math.floor(video.currentTime);
+            }
+            
+            // Verwende die feste Dauer wenn verfügbar, sonst die aktuelle
+            const displayDuration = fixedDuration || video.duration;
+            
+            if (displayDuration && !isNaN(displayDuration) && isFinite(displayDuration)) {
+                const progress = (video.currentTime / displayDuration) * 100;
                 progressBar.value = progress;
                 progressBar.style.background = `linear-gradient(to right, #d4af37 0%, #d4af37 ${progress}%, rgba(255,255,255,0.2) ${progress}%)`;
                 
                 const current = formatTime(video.currentTime);
-                const total = formatTime(video.duration);
+                const total = formatTime(displayDuration);
                 timeDisplay.textContent = `${current} / ${total}`;
             } else {
                 // HLS-Stream ohne Dauer - zeige nur aktuelle Zeit
@@ -1429,8 +1455,9 @@ $gpsLon = $_GET['lon'] ?? '';
         });
 
         progressBar.addEventListener('input', (e) => {
-            if (video.duration) {
-                video.currentTime = (e.target.value / 100) * video.duration;
+            const seekDuration = fixedDuration || video.duration;
+            if (seekDuration) {
+                video.currentTime = (e.target.value / 100) * seekDuration;
             }
         });
 

@@ -1,0 +1,13 @@
+# Erweitert das PHP-Image um FFmpeg
+FROM php:8.3-fpm-alpine
+
+# Installiere FFmpeg
+RUN apk update && \
+    apk add --no-cache ffmpeg && \
+    rm -rf /var/cache/apk/*
+
+# Prüfe Installation
+RUN ffmpeg -version
+
+# Standard PHP-FPM Konfiguration
+WORKDIR /var/www/html

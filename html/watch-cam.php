@@ -44,13 +44,13 @@ $pageTitle = $titles[$roomId] ?? 'Premium Stream';
                 <div class="video-container">
                     <!-- Buchungsbestätigung Overlay -->
                     <div id="bookingConfirmation" style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(34, 197, 94, 0.95); backdrop-filter: blur(20px); padding: 16px 32px; border-radius: 100px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; z-index: 10; border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 10px 40px rgba(34, 197, 94, 0.3); animation: slideInDown 0.5s ease-out;">
-                        ✓ Stream erfolgreich gebucht
+                        ✓ Stream successfully booked
                     </div>
                     
                     <!-- Loading Indicator -->
                     <div id="loadingIndicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 5;">
                         <div style="width: 60px; height: 60px; border: 4px solid rgba(212, 175, 55, 0.2); border-top-color: var(--accent-gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
-                        <div style="color: var(--text-secondary); font-size: 14px;">Verbinde mit Stream...</div>
+                        <div style="color: var(--text-secondary); font-size: 14px;">Connecting to stream...</div>
                     </div>
                     
                     <!-- Video Player -->

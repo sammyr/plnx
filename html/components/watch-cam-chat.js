@@ -37,6 +37,25 @@ function openChatWindow() {
         chatStartTime = Date.now();
         chatTimeInterval = setInterval(updateChatTime, 1000);
         
+        // Aktiviere Mikrofon automatisch beim Chat-Start
+        console.log('[openChatWindow] Aktiviere Mikrofon für Sprachkommunikation...');
+        console.log('[openChatWindow] window.enableViewerMicrophone:', typeof window.enableViewerMicrophone);
+        
+        if (typeof window.enableViewerMicrophone === 'function') {
+            setTimeout(async () => {
+                console.log('[openChatWindow] Rufe enableViewerMicrophone auf...');
+                try {
+                    const success = await window.enableViewerMicrophone();
+                    console.log('[openChatWindow] Mikrofon-Aktivierung:', success ? 'Erfolgreich' : 'Fehlgeschlagen');
+                } catch (error) {
+                    console.error('[openChatWindow] Fehler bei Mikrofon-Aktivierung:', error);
+                }
+            }, 500);
+        } else {
+            console.error('[openChatWindow] enableViewerMicrophone Funktion nicht gefunden!');
+            console.error('[openChatWindow] Verfügbare window-Funktionen:', Object.keys(window).filter(k => k.includes('Microphone')));
+        }
+        
         // Fokussiere Chat-Input
         setTimeout(() => {
             const chatInput = document.getElementById('chatInput');
@@ -69,13 +88,28 @@ function closeChatWindow() {
     
     console.log('[closeChatWindow] Schließe Chat...');
     
+    // Lösche Chat-Status aus localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room');
+    if (roomId) {
+        localStorage.removeItem(`chatActive_${roomId}`);
+        localStorage.removeItem(`chatStartTime_${roomId}`);
+        console.log('[closeChatWindow] Chat-Status aus localStorage gelöscht');
+    }
+    
     // 1. Schließe Chat-Fenster
     if (chatWindow) {
         chatWindow.style.display = 'none';
         console.log('[closeChatWindow] Chat-Fenster geschlossen');
     }
     
-    // 2. Schalte Video stumm und sperre Audio wieder
+    // 2. Deaktiviere Mikrofon
+    console.log('[closeChatWindow] Deaktiviere Mikrofon...');
+    if (typeof window.disableViewerMicrophone === 'function') {
+        window.disableViewerMicrophone();
+    }
+    
+    // 3. Schalte Video stumm und sperre Audio wieder
     window.audioUnlocked = false;
     const video = document.getElementById('videoPlayer');
     if (video) {
@@ -202,6 +236,15 @@ window.openDriverChat = function() {
     console.log('[openDriverChat] openChatWindow:', typeof openChatWindow);
     
     try {
+        // Speichere Chat-Status in localStorage für Persistenz
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+        if (roomId) {
+            localStorage.setItem(`chatActive_${roomId}`, 'true');
+            localStorage.setItem(`chatStartTime_${roomId}`, Date.now().toString());
+            console.log('[openDriverChat] Chat-Status gespeichert in localStorage');
+        }
+        
         showBookingConfirmation();
         openChatWindow();
         
@@ -235,6 +278,29 @@ window.addEventListener('beforeunload', () => {
 // Reservierung aufheben beim Schließen des Tabs (zusätzlich)
 window.addEventListener('pagehide', () => {
     unreserveStream();
+});
+
+// Prüfe beim Laden, ob Chat bereits aktiv war (nach Reload)
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room');
+    
+    if (roomId) {
+        const chatActive = localStorage.getItem(`chatActive_${roomId}`);
+        const savedStartTime = localStorage.getItem(`chatStartTime_${roomId}`);
+        
+        if (chatActive === 'true') {
+            console.log('[DOMContentLoaded] Chat war aktiv - stelle wieder her');
+            
+            // Stelle Chat-Session wieder her
+            setTimeout(() => {
+                if (savedStartTime) {
+                    chatStartTime = parseInt(savedStartTime);
+                }
+                openChatWindow();
+            }, 1000);
+        }
+    }
 });
 
 // ESC zum Schließen
